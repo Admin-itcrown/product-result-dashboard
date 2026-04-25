@@ -1,0 +1,13 @@
+# CODEOWNERS
+#
+# Rules:
+# - By default, @Admin-itcrown is the code owner for everything.
+# - For /src/page/Kiln/, @paojirayu-web is the code owner.
+#
+# Notes:
+# - This file takes effect when branch protection is configured with
+#   "Require review from Code Owners".
+
+* @Admin-itcrown
+
+/src/page/Kiln/ @paojirayu-web
