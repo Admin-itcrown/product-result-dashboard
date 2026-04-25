@@ -2,7 +2,7 @@
 #
 # Rules:
 # - By default, @Admin-itcrown is the code owner for everything.
-# - For /src/page/Kiln/, @paojirayu-web is the code owner.
+# - For specific feature areas under /src/page/, designated users are code owners.
 #
 # Notes:
 # - This file takes effect when branch protection is configured with
@@ -11,3 +11,5 @@
 * @Admin-itcrown
 
 /src/page/Kiln/ @paojirayu-web
+/src/page/Formming/ @weerapogmo007 @ArmOreo
+/src/page/Glaze/ @ArmOreo
