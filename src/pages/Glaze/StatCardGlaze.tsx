@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { LucideIcon } from "lucide-react";
+import { LucideIcon, X, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,12 @@ export function useFetchGlazeStats(
   endDate: Date | undefined
 ) {
   const [statsData, setStatsData] = useState<any[]>([]);
+  const [totals, setTotals] = useState({ totalQtyProc: 0, totalQtyScrap: 0 });
+  const [categoryTotals, setCategoryTotals] = useState({
+    solid: { totalQtyProc: 0, totalQtyScrap: 0 },
+    twoton: { totalQtyProc: 0, totalQtyScrap: 0 },
+    others: { totalQtyProc: 0, totalQtyScrap: 0 },
+  });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -32,29 +38,125 @@ export function useFetchGlazeStats(
         const formattedStart = format(startDate, "yyyy-MM-dd");
         const formattedEnd = format(endDate, "yyyy-MM-dd");
 
-        const query = `
+        // Main query - all lines grouped
+        const mainQuery = `
+  SELECT 
+    [Line],
+    SUM([QtyProc]) AS TotalQtyProc,
+    SUM([QtyScrap]) AS TotalQtyScrap,
+    SUM([QtyMoved]) AS TotalQtyMoved
+  FROM [Db_glaze].[dbo].[glaze_trans]
+  WHERE [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
+  GROUP BY [Line]
+  ORDER BY [Line]
+`;
+
+        // Query for SOLID
+        const solidQuery = `
           SELECT 
-            Wkctr,
-            SUM(CASE 
-                  WHEN [QtyProc] BETWEEN 0 AND 9999 
-                  THEN [QtyProc] 
-                END) AS SUM_QtyProc
-          FROM glaze_trans
-          WHERE [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
-          GROUP BY Wkctr
+            SUM([QtyProc]) AS TotalQtyProc,
+            SUM([QtyScrap]) AS TotalQtyScrap,
+            SUM([QtyMoved]) AS TotalQtyMoved
+          FROM [Db_glaze].[dbo].[glaze_trans]
+          WHERE [Line] LIKE '42SOLID'
+          AND [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
+          ORDER BY [Line]
         `;
 
-        const response = await fetch(`${apiBase}/query`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query, db: dbProfile }),
-        });
+        // Query for TWOTON
+        const twotonQuery = `
+          SELECT 
+            SUM([QtyProc]) AS TotalQtyProc,
+            SUM([QtyScrap]) AS TotalQtyScrap,
+            SUM([QtyMoved]) AS TotalQtyMoved
+          FROM [Db_glaze].[dbo].[glaze_trans]
+          WHERE [Line] LIKE '42TWOTON'
+          AND [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
+          ORDER BY [Line]
+        `;
 
-        const payload = await response.json();
-        setStatsData(payload?.recordset || []);
+        // Query for OTHERS
+        const othersQuery = `
+          SELECT 
+            SUM([QtyProc]) AS TotalQtyProc,
+            SUM([QtyScrap]) AS TotalQtyScrap
+          FROM [Db_glaze].[dbo].[glaze_trans]
+          WHERE [Line] NOT LIKE '42SOLID'
+          AND [Line] NOT LIKE '42TWOTON'
+          AND [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
+          ORDER BY [Line]
+        `;
+        // Fetch all queries in parallel
+        const [mainResponse, solidResponse, twotonResponse, othersResponse] = await Promise.all([
+          fetch(`${apiBase}/query`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: mainQuery, db: dbProfile }),
+          }),
+          fetch(`${apiBase}/query`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: solidQuery, db: dbProfile }),
+          }),
+          fetch(`${apiBase}/query`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: twotonQuery, db: dbProfile }),
+          }),
+          fetch(`${apiBase}/query`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: othersQuery, db: dbProfile }),
+          }),
+        ]);
+
+        const mainPayload = await mainResponse.json();
+        const solidPayload = await solidResponse.json();
+        const twotonPayload = await twotonResponse.json();
+        const othersPayload = await othersResponse.json();
+
+        const records = mainPayload?.recordset || [];
+        setStatsData(records);
+
+        // Calculate overall totals
+        const totalQtyProc = records.reduce(
+          (sum: number, item: any) => sum + Number(item.TotalQtyProc ?? 0),
+          0
+        );
+        const totalQtyScrap = records.reduce(
+          (sum: number, item: any) => sum + Number(item.TotalQtyScrap ?? 0),
+          0
+        );
+        setTotals({ totalQtyProc, totalQtyScrap });
+
+        // Set category totals
+        const solidData = solidPayload?.recordset?.[0] || {};
+        const twotonData = twotonPayload?.recordset?.[0] || {};
+        const othersData = othersPayload?.recordset?.[0] || {};
+
+        setCategoryTotals({
+          solid: {
+            totalQtyProc: Number(solidData.TotalQtyProc ?? 0),
+            totalQtyScrap: Number(solidData.TotalQtyScrap ?? 0),
+          },
+          twoton: {
+            totalQtyProc: Number(twotonData.TotalQtyProc ?? 0),
+            totalQtyScrap: Number(twotonData.TotalQtyScrap ?? 0),
+          },
+          others: {
+            totalQtyProc: Number(othersData.TotalQtyProc ?? 0),
+            totalQtyScrap: Number(othersData.TotalQtyScrap ?? 0),
+          },
+        });
       } catch (err) {
         console.error("Fetch error:", err);
         setStatsData([]);
+        setTotals({ totalQtyProc: 0, totalQtyScrap: 0 });
+        setCategoryTotals({
+          solid: { totalQtyProc: 0, totalQtyScrap: 0 },
+          twoton: { totalQtyProc: 0, totalQtyScrap: 0 },
+          others: { totalQtyProc: 0, totalQtyScrap: 0 },
+        });
       } finally {
         setLoading(false);
       }
@@ -63,7 +165,7 @@ export function useFetchGlazeStats(
     fetchData();
   }, [startDate, endDate]);
 
-  return { statsData, loading };
+  return { statsData, totals, categoryTotals, loading };
 }
 
 /* ================================
@@ -75,6 +177,8 @@ interface StatCardGlazeProps {
   value: string;
   change?: string;
   changeType: "positive" | "negative" | "neutral";
+  scrap?: string;
+  scrapType : "positive" | "negative" | "neutral";
   icon: LucideIcon;
   delay?: number;
   className?: string;
@@ -87,6 +191,8 @@ export function StatCardGlaze({
   value,
   change,
   changeType,
+  scrap,
+  scrapType,
   icon: Icon,
   delay = 0,
   className = "",
@@ -122,17 +228,27 @@ export function StatCardGlaze({
           </p>
 
           {change !== undefined && (
-            <p
+            <div
               className={cn(
-                "text-sm mt-1 font-medium",
+                "flex items-center gap-1 text-sm mt-1 font-medium",
                 changeType === "positive" && "text-green-600",
                 changeType === "negative" && "text-red-600",
                 changeType === "neutral" && "text-muted-foreground"
               )}
             >
-              ยอด A {change}
-            </p>
+              <CheckCircle2 className="h-4 w-4" />
+              <span>ยอด A {change}</span>
+            </div>
           )}
+
+          {scrap !== undefined && (
+            <div className="flex items-center gap-1 text-sm mt-1 font-medium text-red-600">
+              <X className="h-4 w-4" />
+              <span>Scrap {scrap}</span>
+            </div>
+          )}
+          
+          
         </div>
 
         <div className="h-12 w-12 rounded-lg bg-accent flex items-center justify-center">

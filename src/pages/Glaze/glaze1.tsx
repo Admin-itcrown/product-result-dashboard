@@ -1,9 +1,10 @@
 import React from "react";
-import { Coffee, Wine, Calendar } from "lucide-react";
+import { Coffee, Wine, Calendar,CupSoda,GlassWater,Milk,Factory,PackageCheck,Blend,Boxes } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
+
 import { StatCardGlaze, useFetchGlazeStats } from "./StatCardGlaze";
 import { CategoryChartGlaze } from "./CategoryChartGlaze";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
@@ -12,76 +13,117 @@ import { ProductTableGlaze } from "./ProductTableGlaze";
 import { ProductChartGlaze } from "./ProductChartGlaze";
 
 const Glaze1 = () => {
-  const [startDate, setStartDate] = React.useState<Date | undefined>(
-    new Date()
-  );
-  const [endDate, setEndDate] = React.useState<Date | undefined>(
-    new Date()
-  );
+  const [startDate, setStartDate] = React.useState<Date | undefined>(new Date());
+  const [endDate, setEndDate] = React.useState<Date | undefined>(new Date());
 
   const [showStart, setShowStart] = React.useState(false);
   const [showEnd, setShowEnd] = React.useState(false);
 
-  const { statsData, loading } = useFetchGlazeStats(
-    startDate,
-    endDate
-  );
+  const { statsData, loading } = useFetchGlazeStats(startDate, endDate);
 
-  const wkctrList = [
-    "W517001",
-    "W517002",
-    "W517003",
-    "W517004",
-    "W517006",
-    "W517009",
-    "W518001",
-  ];
-
+  /* ===============================
+     รวมยอดทั้งหมด
+  =============================== */
   const statsSumNumber = statsData.reduce(
-    (sum: number, item: any) =>
-      sum + Number(item.SUM_QtyProc ?? 0),
+    (sum: number, item: any) => sum + Number(item.TotalQtyProc ?? 0),
     0
   );
 
-  const statsSum = loading
-    ? "Loading..."
-    : statsSumNumber.toLocaleString();
+  const statsSumScrap = statsData.reduce(
+    (sum: number, item: any) => sum + Number(item.TotalQtyScrap ?? 0),
+    0
+  );
 
+  const statsSumMoved = statsData.reduce(
+    (sum: number, item: any) => sum + Number(item.TotalQtyMoved ?? 0),
+    0
+  );
+
+  /* ===============================
+     แยกกลุ่ม
+  =============================== */
+  let solideSum = 0;
+  let solidScrap = 0;
+  let solidMoved = 0;
+
+  let treetonSum = 0;
+  let treetonScrap = 0;
+  let twotonMoved = 0;
+
+  let othersSum = 0;
+  let othersScrap = 0;
+  let othersMoved = 0;
+
+  statsData.forEach((item: any) => {
+    const line = String(item.Line || "");
+
+    const proc = Number(item.TotalQtyProc ?? 0);
+    const scrap = Number(item.TotalQtyScrap ?? 0);
+    const moved = Number(item.TotalQtyMoved ?? 0);
+
+    if (line === "42SOLID") {
+      solideSum += proc;
+      solidScrap += scrap;
+      solidMoved += moved;
+    } else if (line.includes("42TWOTON")) {
+      treetonSum += proc;
+      treetonScrap += scrap;
+      twotonMoved += moved;
+    } else {
+      othersSum += proc;
+      othersScrap += scrap;
+      othersMoved += moved;
+    }
+  });
+
+  /* ===============================
+     Cards
+  =============================== */
   const stats = [
     {
-      title: "Total All Wkctr",
-      value: statsSum,
-      change: loading ? "" : "100%",
+      title: "Total",
+      value: loading ? "Loading..." : statsSumNumber.toLocaleString(),
+      change: loading ? "" : statsSumMoved.toLocaleString(),
       changeType: "positive" as const,
-      icon: Coffee,
+      scrap: loading ? "" : statsSumScrap.toLocaleString(),
+      scrapType: "neutral" as const,
+      icon: Factory,
       titleClassName: "text-black text-xl",
       valueClassName: "text-blue-700 text-3xl",
     },
-    ...wkctrList.map((wk) => {
-      const found = statsData.find(
-        (d: any) => d.Wkctr === wk
-      );
 
-      const valueNumber = Number(
-        found?.SUM_QtyProc ?? 0
-      );
+    {
+      title: "SOLID",
+      value: loading ? "Loading..." : solideSum.toLocaleString(),
+      change: loading ? "" : solidMoved.toLocaleString(),
+      changeType: "positive" as const,
+      scrap: loading ? "" : solidScrap.toLocaleString(),
+      scrapType: "neutral" as const,
+      icon: Coffee,
+      titleClassName: "text-black",
+    },
 
-      const percent =
-        statsSumNumber > 0
-          ? ((valueNumber / statsSumNumber) * 100).toFixed(2)
-          : "0.00";
+    {
+      title: "TWOTON",
+      value: loading ? "Loading..." : treetonSum.toLocaleString(),
+      change: loading ? "" : twotonMoved.toLocaleString(),
+      changeType: "positive" as const,
+      scrap: loading ? "" : treetonScrap.toLocaleString(),
+      scrapType: "neutral" as const,
+      icon: Blend,
+      titleClassName: "text-black",
+    },
 
-      return {
-        title: `Wkctr ${wk}`,
-        value: loading
-          ? "Loading..."
-          : valueNumber.toLocaleString(),
-        change: loading ? "" : `${percent}%`,
-        changeType: "positive" as const,
-        icon: Wine,
-        titleClassName: "text-black",
-      };
-    }),
+    {
+      title: "Others",
+      value: loading ? "Loading..." : othersSum.toLocaleString(),
+      change: loading ? "" : othersMoved.toLocaleString(),
+      changeType: "positive" as const,
+      scrap: loading ? "" : othersScrap.toLocaleString(),
+      scrapType: "neutral" as const,
+      icon: Boxes,
+      titleClassName: "text-black",
+    },
   ];
 
   const dayPickerProps = {
@@ -93,17 +135,13 @@ const Glaze1 = () => {
     showOutsideDays: true,
     classNames: {
       caption: "flex justify-center gap-2 mb-4",
-      caption_label: "hidden", // ✅ ซ่อนชื่อเดือน/ปีที่ซ้ำ
+      caption_label: "hidden",
       caption_dropdowns: "flex gap-2",
       dropdown: "px-2 py-1 border rounded-md text-sm bg-white",
-
       table: "w-full",
-      head_cell:
-        "text-xs font-semibold text-gray-500 text-center",
-
+      head_cell: "text-xs font-semibold text-gray-500 text-center",
       day: "h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition",
-      day_selected:
-        "bg-blue-600 text-white hover:bg-blue-600",
+      day_selected: "bg-blue-600 text-white hover:bg-blue-600",
     },
   };
 
@@ -115,10 +153,11 @@ const Glaze1 = () => {
         <DashboardHeader />
 
         <main className="flex-1 p-6 overflow-auto">
-          {/* ================= Date Filter ================= */}
+
+          {/* Date Filter */}
           <div className="mb-6 flex gap-8 items-center flex-wrap">
 
-            {/* Start Date */}
+            {/* Start */}
             <div className="relative flex items-center gap-3">
               <label className="text-sm font-medium whitespace-nowrap">
                 วันที่เริ่มต้น:
@@ -130,9 +169,7 @@ const Glaze1 = () => {
                   readOnly
                   value={
                     startDate
-                      ? format(startDate, "dd/MM/yyyy", {
-                          locale: th,
-                        })
+                      ? format(startDate, "dd/MM/yyyy", { locale: th })
                       : ""
                   }
                   onClick={() => setShowStart(!showStart)}
@@ -160,7 +197,7 @@ const Glaze1 = () => {
               )}
             </div>
 
-            {/* End Date */}
+            {/* End */}
             <div className="relative flex items-center gap-3">
               <label className="text-sm font-medium whitespace-nowrap">
                 วันที่สิ้นสุด:
@@ -172,9 +209,7 @@ const Glaze1 = () => {
                   readOnly
                   value={
                     endDate
-                      ? format(endDate, "dd/MM/yyyy", {
-                          locale: th,
-                        })
+                      ? format(endDate, "dd/MM/yyyy", { locale: th })
                       : ""
                   }
                   onClick={() => setShowEnd(!showEnd)}
@@ -203,7 +238,7 @@ const Glaze1 = () => {
             </div>
           </div>
 
-          {/* ================= Stat Cards ================= */}
+          {/* Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
             {stats.map((stat, index) => (
               <StatCardGlaze
@@ -214,13 +249,13 @@ const Glaze1 = () => {
             ))}
           </div>
 
-          {/* ================= Charts ================= */}
+          {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             <div className="lg:col-span-2">
               <ProductChartGlaze />
             </div>
 
-            <CategoryChartGlaze />
+            <CategoryChartGlaze startDate={startDate} endDate={endDate} />
           </div>
 
           <ProductTableGlaze />
