@@ -2,17 +2,23 @@ import { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { format } from "date-fns";
 
-// Color palette for pie chart
+// Color palette for pie chart - distinct colors for each clay type
 const COLORS = [
-  "hsl(24, 95%, 53%)",
-  "hsl(217, 91%, 60%)",
-  "hsl(127, 72%, 47%)",
-  "hsl(222, 47%, 31%)",
-  "hsl(262, 80%, 50%)",
-  "hsl(346, 77%, 50%)",
-  "hsl(38, 92%, 50%)",
-  "hsl(187, 100%, 42%)",
+  "hsl(24, 95%, 53%)",    // Orange for ดินดำ
+  "hsl(217, 91%, 60%)",   // Blue for ดินขาว
 ];
+
+// Mapping of Clay group codes to full names
+const CLAY_GROUP_NAMES: Record<string, string> = {
+  "S": "ดินดำ",
+  "V": "ดินขาว",
+};
+
+// Mapping of Clay group codes to colors
+const CLAY_GROUP_COLORS: Record<string, string> = {
+  "S": "hsl(24, 95%, 53%)",    // Orange for ดินดำ
+  "V": "hsl(217, 91%, 60%)",   // Blue for ดินขาว
+};
 
 interface CategoryChartGlazeProps {
   startDate?: Date;
@@ -71,13 +77,19 @@ export function CategoryChartGlaze({ startDate, endDate }: CategoryChartGlazePro
         const result = await response.json();
         
         if (result.recordset && Array.isArray(result.recordset)) {
-          // Transform data for pie chart
+          // Transform data for pie chart with full Clay group names
           const transformedData = result.recordset.map(
-            (item: any, index: number) => ({
-              name: item.ClayGroup || `Item ${index + 1}`,
-              value: item.TotalQtyProc || 0,
-              color: COLORS[index % COLORS.length],
-            })
+            (item: any) => {
+              const clayCode = item.ClayGroup || "";
+              const fullName = CLAY_GROUP_NAMES[clayCode] || `Clay ${clayCode}`;
+              const color = CLAY_GROUP_COLORS[clayCode] || "hsl(200, 100%, 50%)";
+              return {
+                clayCode: clayCode,
+                name: fullName,
+                value: item.TotalQtyProc || 0,
+                color: color,
+              };
+            }
           );
           setData(transformedData);
         } else {
@@ -108,8 +120,8 @@ export function CategoryChartGlaze({ startDate, endDate }: CategoryChartGlazePro
   return (
     <div className="bg-card rounded-lg border border-border p-6 shadow-card opacity-0 animate-fade-in" style={{ animationDelay: "250ms" }}>
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-foreground">Clay Distribution</h3>
-        <p className="text-sm text-muted-foreground">Distribution by Clay Group</p>
+        <h3 className="text-lg font-semibold text-foreground">Clay </h3>
+        <p className="text-sm text-muted-foreground">Total quantity produced</p>
       </div>
       <div className="h-[280px]">
         {loading ? (
@@ -121,37 +133,50 @@ export function CategoryChartGlaze({ startDate, endDate }: CategoryChartGlazePro
             <p className="text-muted-foreground">No data available</p>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={90}
-                paddingAngle={4}
-                dataKey="value"
-              >
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(0, 0%, 100%)",
-                  border: "1px solid hsl(214, 32%, 91%)",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                }}
-                formatter={(value: number) => [`${value}`, "Quantity"]}
-              />
-              <Legend 
-                verticalAlign="bottom" 
-                height={36}
-                formatter={(value) => <span className="text-sm text-muted-foreground">{value}</span>}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="45%"
+                  innerRadius={60}
+                  outerRadius={90}
+                  paddingAngle={4}
+                  dataKey="value"
+                >
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(0, 0%, 100%)",
+                    border: "1px solid hsl(214, 32%, 91%)",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                  }}
+                  formatter={(value: number) => [`${value}`, "Quantity"]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div style={{ display: "flex", justifyContent: "center", gap: "30px", marginTop: "10px" }}>
+              {data.map((item, index) => (
+                <div key={`legend-${index}`} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: "16px",
+                      height: "16px",
+                      backgroundColor: item.color,
+                      borderRadius: "2px",
+                    }}
+                  />
+                  <span style={{ fontSize: "14px", fontWeight: "500" }}>{item.name}</span>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>

@@ -110,7 +110,7 @@ const Glaze1 = () => {
       changeType: "positive" as const,
       scrap: loading ? "" : treetonScrap.toLocaleString(),
       scrapType: "neutral" as const,
-      icon: Blend,
+      icon: GlassWater,
       titleClassName: "text-black",
     },
 
