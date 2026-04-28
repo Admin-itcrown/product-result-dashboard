@@ -1,23 +1,25 @@
 import { useEffect, useState } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  Sector,
+} from "recharts";
 import { format } from "date-fns";
 
-// Color palette for pie chart - distinct colors for each clay type
-const COLORS = [
-  "hsl(24, 95%, 53%)",    // Orange for ดินดำ
-  "hsl(217, 91%, 60%)",   // Blue for ดินขาว
-];
-
-// Mapping of Clay group codes to full names
+// ==============================
+// Config
+// ==============================
 const CLAY_GROUP_NAMES: Record<string, string> = {
-  "S": "ดินดำ",
-  "V": "ดินขาว",
+  S: "ดินดำ",
+  V: "ดินขาว",
 };
 
-// Mapping of Clay group codes to colors
 const CLAY_GROUP_COLORS: Record<string, string> = {
-  "S": "hsl(24, 95%, 53%)",    // Orange for ดินดำ
-  "V": "hsl(217, 91%, 60%)",   // Blue for ดินขาว
+  S: "#f97316",
+  V: "#3b82f6",
 };
 
 interface CategoryChartGlazeProps {
@@ -25,10 +27,47 @@ interface CategoryChartGlazeProps {
   endDate?: Date;
 }
 
-export function CategoryChartGlaze({ startDate, endDate }: CategoryChartGlazeProps) {
+// ==============================
+// Hover Expand Shape
+// ==============================
+const renderActiveShape = (props: any) => {
+  const {
+    cx,
+    cy,
+    innerRadius,
+    outerRadius,
+    startAngle,
+    endAngle,
+    fill,
+  } = props;
+
+  return (
+    <Sector
+      cx={cx}
+      cy={cy}
+      innerRadius={innerRadius}
+      outerRadius={outerRadius + 8}
+      startAngle={startAngle}
+      endAngle={endAngle}
+      fill={fill}
+      stroke="#fff"
+      strokeWidth={2}
+    />
+  );
+};
+
+export function CategoryChartGlaze({
+  startDate,
+  endDate,
+}: CategoryChartGlazeProps) {
   const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] =
+    useState(true);
+  const [error, setError] = useState<
+    string | null
+  >(null);
+  const [activeIndex, setActiveIndex] =
+    useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,68 +75,87 @@ export function CategoryChartGlaze({ startDate, endDate }: CategoryChartGlazePro
         setLoading(true);
         setError(null);
 
-        // Format dates for SQL query
-        const startStr = startDate ? format(startDate, "yyyy-MM-dd") : null;
-        const endStr = endDate ? format(endDate, "yyyy-MM-dd") : null;
+        const startStr = startDate
+          ? format(
+              startDate,
+              "yyyy-MM-dd"
+            )
+          : null;
+
+        const endStr = endDate
+          ? format(
+              endDate,
+              "yyyy-MM-dd"
+            )
+          : null;
 
         let query = `
           SELECT 
-              LEFT([Clay], 1) AS ClayGroup,
-              SUM([QtyProc]) AS TotalQtyProc
+            LEFT([Clay],1) AS ClayGroup,
+            SUM([QtyProc]) AS TotalQtyProc
           FROM [Db_glaze].[dbo].[glaze_trans]
         `;
 
-        // Add date filter if dates are provided
         if (startStr && endStr) {
           query += `
-          WHERE [Date] BETWEEN '${startStr}' AND '${endStr}'
+            WHERE [Date] BETWEEN '${startStr}' AND '${endStr}'
           `;
         }
 
         query += `
-          GROUP BY LEFT([Clay], 1)
+          GROUP BY LEFT([Clay],1)
           ORDER BY ClayGroup
         `;
 
-        const response = await fetch("/query", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query: query,
-            db: "glaze",
-          }),
-        });
+        const response =
+          await fetch("/query", {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              query,
+              db: "glaze",
+            }),
+          });
 
         if (!response.ok) {
-          throw new Error(`API error: ${response.statusText}`);
+          throw new Error(
+            "Load data failed"
+          );
         }
 
-        const result = await response.json();
-        
-        if (result.recordset && Array.isArray(result.recordset)) {
-          // Transform data for pie chart with full Clay group names
-          const transformedData = result.recordset.map(
+        const result =
+          await response.json();
+
+        const transformed =
+          result.recordset?.map(
             (item: any) => {
-              const clayCode = item.ClayGroup || "";
-              const fullName = CLAY_GROUP_NAMES[clayCode] || `Clay ${clayCode}`;
-              const color = CLAY_GROUP_COLORS[clayCode] || "hsl(200, 100%, 50%)";
+              const code =
+                item.ClayGroup;
+
               return {
-                clayCode: clayCode,
-                name: fullName,
-                value: item.TotalQtyProc || 0,
-                color: color,
+                name:
+                  CLAY_GROUP_NAMES[
+                    code
+                  ] || code,
+                value:
+                  item.TotalQtyProc ||
+                  0,
+                color:
+                  CLAY_GROUP_COLORS[
+                    code
+                  ] || "#8884d8",
               };
             }
-          );
-          setData(transformedData);
-        } else {
-          throw new Error("Invalid response format");
-        }
+          ) || [];
+
+        setData(transformed);
       } catch (err) {
-        console.error("Error fetching chart data:", err);
-        setError(err instanceof Error ? err.message : "Failed to load data");
+        setError(
+          "Failed to load chart"
+        );
       } finally {
         setLoading(false);
       }
@@ -106,75 +164,206 @@ export function CategoryChartGlaze({ startDate, endDate }: CategoryChartGlazePro
     fetchData();
   }, [startDate, endDate]);
 
+  const total = data.reduce(
+    (sum, item) =>
+      sum + item.value,
+    0
+  );
+
+  const formatNumber = (
+    num: number
+  ) =>
+    num.toLocaleString();
+
   if (error) {
     return (
-      <div className="bg-card rounded-lg border border-border p-6 shadow-card opacity-0 animate-fade-in" style={{ animationDelay: "250ms" }}>
-        <div className="text-center text-red-500">
-          <p className="font-semibold">Error loading chart</p>
-          <p className="text-sm">{error}</p>
-        </div>
+      <div className="bg-card rounded-lg border border-border p-6 shadow-card">
+        <p className="text-center text-red-500">
+          {error}
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="bg-card rounded-lg border border-border p-6 shadow-card opacity-0 animate-fade-in" style={{ animationDelay: "250ms" }}>
+    <div
+      className="bg-card rounded-lg border border-border p-6 shadow-card opacity-0 animate-fade-in"
+      style={{
+        animationDelay: "250ms",
+      }}
+    >
+      {/* Header */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-foreground">Clay </h3>
-        <p className="text-sm text-muted-foreground">Total quantity produced</p>
+        <h3 className="text-lg font-semibold text-foreground">
+          Clay Overview
+        </h3>
+
+        <p className="text-sm text-muted-foreground">
+          Production by clay
+          category
+        </p>
       </div>
-      <div className="h-[280px]">
+
+      <div className="h-[320px]">
         {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">Loading chart...</p>
-          </div>
-        ) : data.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-muted-foreground">No data available</p>
+          <div className="flex h-full items-center justify-center">
+            Loading...
           </div>
         ) : (
           <>
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer
+              width="100%"
+              height="70%"
+            >
               <PieChart>
                 <Pie
                   data={data}
+                  dataKey="value"
                   cx="50%"
-                  cy="45%"
+                  cy="50%"
                   innerRadius={60}
                   outerRadius={90}
-                  paddingAngle={4}
-                  dataKey="value"
+                  paddingAngle={3}
+                  label={false}
+                  labelLine={false}
+                  activeIndex={
+                    activeIndex
+                  }
+                  activeShape={
+                    renderActiveShape
+                  }
+                  onMouseEnter={(
+                    _,
+                    index
+                  ) =>
+                    setActiveIndex(
+                      index
+                    )
+                  }
+                  isAnimationActive
+                  animationDuration={
+                    900
+                  }
                 >
-                  {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
+                  {data.map(
+                    (
+                      entry,
+                      index
+                    ) => (
+                      <Cell
+                        key={index}
+                        fill={
+                          entry.color
+                        }
+                      />
+                    )
+                  )}
                 </Pie>
+
+                {/* Center Text */}
+                <text
+                  x="50%"
+                  y="46%"
+                  textAnchor="middle"
+                  className="fill-muted-foreground text-sm font-semibold"
+                >
+                  TOTAL
+                </text>
+
+                <text
+                  x="50%"
+                  y="54%"
+                  textAnchor="middle"
+                  className="fill-foreground text-xl font-bold"
+                >
+                  {formatNumber(
+                    total
+                  )}
+                </text>
+
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "hsl(0, 0%, 100%)",
-                    border: "1px solid hsl(214, 32%, 91%)",
-                    borderRadius: "8px",
-                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                    backgroundColor:
+                      "hsl(0, 0%, 100%)",
+                    border:
+                      "1px solid hsl(214, 32%, 91%)",
+                    borderRadius:
+                      "8px",
+                    boxShadow:
+                      "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                   }}
-                  formatter={(value: number) => [`${value}`, "Quantity"]}
+                  formatter={(
+                    value: number
+                  ) => {
+                    const percent =
+                      (
+                        (value /
+                          total) *
+                        100
+                      ).toFixed(
+                        1
+                      );
+
+                    return [
+                      `${formatNumber(
+                        value
+                      )} (${percent}%)`,
+                      "Quantity",
+                    ];
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>
-            <div style={{ display: "flex", justifyContent: "center", gap: "30px", marginTop: "10px" }}>
-              {data.map((item, index) => (
-                <div key={`legend-${index}`} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      width: "16px",
-                      height: "16px",
-                      backgroundColor: item.color,
-                      borderRadius: "2px",
-                    }}
-                  />
-                  <span style={{ fontSize: "14px", fontWeight: "500" }}>{item.name}</span>
-                </div>
-              ))}
+
+            {/* Legend */}
+            <div className="grid grid-cols-2 gap-3 h-[25%] mt-6">
+              {data.map(
+                (
+                  item,
+                  index
+                ) => {
+                  const percent =
+                    (
+                      (item.value /
+                        total) *
+                      100
+                    ).toFixed(
+                      1
+                    );
+
+                  return (
+                    <div
+                      key={
+                        index
+                      }
+                      className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="h-3 w-3 rounded-sm"
+                          style={{
+                            backgroundColor:
+                              item.color,
+                          }}
+                        />
+
+                        <span className="text-base font-semibold text-foreground">
+                          {
+                            item.name
+                          }
+                        </span>
+                      </div>
+
+                      <span className="text-sm text-muted-foreground ml-2">
+                        {
+                          percent
+                        }
+                        %
+                      </span>
+                    </div>
+                  );
+                }
+              )}
             </div>
           </>
         )}
