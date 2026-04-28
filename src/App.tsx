@@ -26,16 +26,16 @@ import Formming from "./pages/Formming/formming1";
 const queryClient = new QueryClient();
 
 /* =========================
-   Layout หลัก (สำคัญ)
+   Layout หลัก
 ========================= */
 function Layout() {
   return (
-    <div className="flex">
-      {/* Sidebar ล็อคซ้าย */}
+    <div className="min-h-screen bg-background">
+      {/* Sidebar Fixed */}
       <DashboardSidebar />
 
-      {/* กันล้น + ดัน content */}
-      <main className="flex-1 ml-64 min-h-screen overflow-x-hidden bg-background">
+      {/* Content */}
+      <main className="ml-64 pt-16 min-h-screen overflow-x-hidden">
         <Outlet />
       </main>
     </div>
@@ -48,7 +48,7 @@ function Layout() {
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
-      {/* ทุกหน้าใช้ Layout นี้ */}
+      {/* ใช้ Layout หลัก */}
       <Route element={<Layout />}>
         <Route path="/" element={<Index />} />
         <Route path="/clay1" element={<Clay1 />} />
@@ -67,7 +67,9 @@ const router = createBrowserRouter(
     </>
   ),
   {
-    future: { v7_relativeSplatPath: true },
+    future: {
+      v7_relativeSplatPath: true,
+    },
   }
 );
 

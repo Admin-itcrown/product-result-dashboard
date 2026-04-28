@@ -136,6 +136,7 @@ export function CategoryChartGlaze({
                 item.ClayGroup;
 
               return {
+                code: code,
                 name:
                   CLAY_GROUP_NAMES[
                     code
@@ -151,7 +152,18 @@ export function CategoryChartGlaze({
             }
           ) || [];
 
-        setData(transformed);
+        // Sort to show ดินขาว (V) first, then ดินดำ (S)
+        const sorted = transformed.sort(
+          (a: any, b: any) => {
+            const order: Record<string, number> = {
+              "V": 0, // ดินขาว first
+              "S": 1, // ดินดำ second
+            };
+            return (order[a.code] ?? 2) - (order[b.code] ?? 2);
+          }
+        );
+
+        setData(sorted);
       } catch (err) {
         setError(
           "Failed to load chart"
@@ -187,20 +199,19 @@ export function CategoryChartGlaze({
 
   return (
     <div
-      className="bg-card rounded-lg border border-border p-6 shadow-card opacity-0 animate-fade-in"
+      className="sticky top-6 bg-card rounded-lg border border-border p-6 shadow-card opacity-0 animate-fade-in"
       style={{
         animationDelay: "250ms",
       }}
     >
       {/* Header */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold text-foreground">
+      <div className="mb-8">
+        <h3 className="text-2xl font-bold text-foreground">
           Clay Overview
         </h3>
 
-        <p className="text-sm text-muted-foreground">
-          Production by clay
-          category
+        <p className="text-sm text-muted-foreground mt-1">
+          Production by clay category
         </p>
       </div>
 
@@ -316,7 +327,7 @@ export function CategoryChartGlaze({
             </ResponsiveContainer>
 
             {/* Legend */}
-            <div className="grid grid-cols-2 gap-3 h-[25%] mt-6">
+            <div className="grid grid-cols-2 gap-4 h-[25%] mt-8">
               {data.map(
                 (
                   item,
@@ -336,25 +347,28 @@ export function CategoryChartGlaze({
                       key={
                         index
                       }
-                      className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-3"
+                      className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 bg-gradient-to-br from-background to-muted/20 px-4 py-4 transition-all duration-200 hover:shadow-md hover:scale-105 cursor-default"
+                      style={{
+                        borderColor: item.color,
+                      }}
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-3">
                         <span
-                          className="h-3 w-3 rounded-sm"
+                          className="h-5 w-5 rounded-md shadow-sm"
                           style={{
                             backgroundColor:
                               item.color,
                           }}
                         />
 
-                        <span className="text-base font-semibold text-foreground">
+                        <span className="text-lg font-bold text-foreground">
                           {
                             item.name
                           }
                         </span>
                       </div>
 
-                      <span className="text-sm text-muted-foreground ml-2">
+                      <span className="text-base font-bold" style={{ color: item.color }}>
                         {
                           percent
                         }
