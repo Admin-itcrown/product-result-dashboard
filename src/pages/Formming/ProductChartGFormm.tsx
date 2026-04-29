@@ -1,93 +1,246 @@
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useEffect, useState } from "react";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
+import { Maximize2, X } from "lucide-react";
 
-const data = [
-  { name: "Jan", sales: 4000, revenue: 2400 },
-  { name: "Feb", sales: 3000, revenue: 1398 },
-  { name: "Mar", sales: 5000, revenue: 9800 },
-  { name: "Apr", sales: 2780, revenue: 3908 },
-  { name: "May", sales: 1890, revenue: 4800 },
-  { name: "Jun", sales: 2390, revenue: 3800 },
-  { name: "Jul", sales: 3490, revenue: 4300 },
-  { name: "Aug", sales: 4200, revenue: 5100 },
-  { name: "Sep", sales: 5100, revenue: 6200 },
-  { name: "Oct", sales: 4800, revenue: 5800 },
-  { name: "Nov", sales: 6200, revenue: 7400 },
-  { name: "Dec", sales: 7100, revenue: 8900 },
-];
+export function ProductChartFormming() {
+  const today = new Date();
 
-export function ProductChartFormm() {
+  const [mode, setMode] = useState("month");
+  const [selectedMonth, setSelectedMonth] = useState(
+    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`
+  );
+  const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    fetchData();
+  }, [mode, selectedMonth, selectedYear]);
+
+  const fetchData = async () => {
+    const dbProfile = "glaze";
+
+    const envApi = (import.meta as any)?.env?.VITE_API_URL;
+    const apiBase =
+      envApi ||
+      `${window.location.protocol}//${window.location.hostname}:3001`;
+
+    let whereDate = "";
+    let groupBy = "";
+    let label = "";
+
+    if (mode === "month") {
+      whereDate = `FORMAT([Date],'yyyy-MM')='${selectedMonth}'`;
+      groupBy = "DAY([Date])";
+      label = "CAST(DAY([Date]) AS VARCHAR)";
+    }
+
+    if (mode === "year") {
+      whereDate = `YEAR([Date])=${selectedYear}`;
+      groupBy = "MONTH([Date])";
+      label = "FORMAT([Date],'MMM')";
+    }
+
+    const query = `
+      SELECT
+        ${label} AS Period,
+        SUM(CASE WHEN Line = '42SOLID' THEN [QtyMoved] ELSE 0 END) AS SOLID,
+        SUM(CASE WHEN Line = '42TWOTON' THEN [QtyMoved] ELSE 0 END) AS TWOTON,
+        SUM(CASE WHEN Line NOT IN ('42SOLID','42TWOTON') THEN [QtyMoved] ELSE 0 END) AS Others
+      FROM glaze_trans
+      WHERE ${whereDate}
+      GROUP BY ${groupBy}, ${label}
+      ORDER BY ${groupBy}
+    `;
+
+    setLoading(true);
+
+    try {
+      const res = await fetch(`${apiBase}/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, db: dbProfile }),
+      });
+
+      const payload = await res.json();
+      const raw = payload?.recordset || [];
+
+      setData(
+        raw.map((row: any) => ({
+          name: row.Period,
+          SOLID: Number(row.SOLID || 0),
+          TWOTON: Number(row.TWOTON || 0),
+          Others: Number(row.Others || 0),
+        }))
+      );
+    } catch (error) {
+      console.error(error);
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const COLORS = {
+    SOLID: { stroke: "#1e3a8a", fill: "#3b82f6" },
+    TWOTON: { stroke: "#c2410c", fill: "#fb923c" },
+    Others: { stroke: "#166534", fill: "#4ade80" },
+  };
+
+  const ChartBox = () => (
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart data={data}>
+        <defs>
+          <linearGradient id="solidGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.6} />
+            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
+          </linearGradient>
+
+          <linearGradient id="twotonGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#fb923c" stopOpacity={0.6} />
+            <stop offset="95%" stopColor="#fb923c" stopOpacity={0.05} />
+          </linearGradient>
+
+          <linearGradient id="otherGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#4ade80" stopOpacity={0.5} />
+            <stop offset="95%" stopColor="#4ade80" stopOpacity={0.05} />
+          </linearGradient>
+        </defs>
+
+        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+        <XAxis dataKey="name" />
+        <YAxis />
+
+        <Tooltip
+          contentStyle={{
+            backgroundColor: "#fff",
+            border: "1px solid #e5e7eb",
+            borderRadius: "12px",
+          }}
+        />
+
+        <Legend />
+
+        <Area
+          type="monotone"
+          dataKey="SOLID"
+          stroke={COLORS.SOLID.stroke}
+          fill="url(#solidGrad)"
+          strokeWidth={2.5}
+        />
+
+        <Area
+          type="monotone"
+          dataKey="TWOTON"
+          stroke={COLORS.TWOTON.stroke}
+          fill="url(#twotonGrad)"
+          strokeWidth={2.5}
+        />
+
+        <Area
+          type="monotone"
+          dataKey="Others"
+          stroke={COLORS.Others.stroke}
+          fill="url(#otherGrad)"
+          strokeWidth={2.5}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+
+  const yearOptions = Array.from(
+    { length: 6 },
+    (_, i) => today.getFullYear() - i
+  );
+
   return (
-     
-    <div className="bg-card rounded-lg border border-border p-6 shadow-card opacity-0 animate-fade-in" style={{ animationDelay: "200ms" }}>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="text-lg font-semibold text-foreground">Product Performance Fromming </h3>
-          <p className="text-sm text-muted-foreground">Sales and revenue overview</p>
+    <>
+      <div className="bg-white rounded-2xl border shadow-lg p-6 relative">
+
+        <button
+          onClick={() => setIsFullscreen(true)}
+          className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100"
+        >
+          <Maximize2 size={18} />
+        </button>
+
+        <div className="flex justify-between items-center mb-5 pr-10">
+          <h3 className="text-xl font-semibold text-gray-800">
+            Product Performance Glaze
+          </h3>
+
+          <div className="flex gap-3">
+            <select
+              value={mode}
+              onChange={(e) => setMode(e.target.value)}
+              className="border rounded-lg px-3 py-1"
+            >
+              <option value="month">รายเดือน</option>
+              <option value="year">รายปี</option>
+            </select>
+
+            {mode === "month" && (
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="border rounded-lg px-3 py-1"
+              />
+            )}
+
+            {mode === "year" && (
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="border rounded-lg px-3 py-1"
+              >
+                {yearOptions.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-primary" />
-            <span className="text-sm text-muted-foreground">Sales</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-chart-2" />
-            <span className="text-sm text-muted-foreground">Revenue</span>
-          </div>
+
+        <div className="h-[380px]">
+          {loading ? (
+            <div className="flex items-center justify-center h-full text-gray-400">
+              Loading chart...
+            </div>
+          ) : (
+            <ChartBox />
+          )}
         </div>
       </div>
-      <div className="h-[300px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(168, 76%, 36%)" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="hsl(168, 76%, 36%)" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(199, 89%, 48%)" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="hsl(199, 89%, 48%)" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" vertical={false} />
-            <XAxis 
-              dataKey="name" 
-              axisLine={false} 
-              tickLine={false} 
-              tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }}
-            />
-            <YAxis 
-              axisLine={false} 
-              tickLine={false} 
-              tick={{ fill: "hsl(215, 16%, 47%)", fontSize: 12 }}
-              tickFormatter={(value) => `${value / 1000}k`}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "hsl(0, 0%, 100%)",
-                border: "1px solid hsl(214, 32%, 91%)",
-                borderRadius: "8px",
-                boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-              }}
-              labelStyle={{ color: "hsl(222, 47%, 11%)", fontWeight: 600 }}
-            />
-            <Area
-              type="monotone"
-              dataKey="sales"
-              stroke="hsl(36, 95%, 50%)"
-              strokeWidth={2}
-              fill="url(#salesGradient)"
-            />
-            <Area
-              type="monotone"
-              dataKey="revenue"
-              stroke="hsl(217, 95%, 50%)"
-              strokeWidth={2}
-              fill="url(#revenueGradient)"
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-    
+
+      {isFullscreen && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
+          <div className="bg-white w-[95vw] h-[90vh] rounded-2xl flex flex-col">
+
+            <div className="border-b px-6 py-4 flex justify-between">
+              <h3 className="font-semibold text-lg">Product Performance Glaze</h3>
+              <button onClick={() => setIsFullscreen(false)}>
+                <X />
+              </button>
+            </div>
+
+            <div className="flex-1 p-6">
+              <ChartBox />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

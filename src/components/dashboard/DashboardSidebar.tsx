@@ -10,6 +10,7 @@ import {
   Boxes,
   ChevronDown
 } from "lucide-react";
+import logo from "@/icon/icon2.png";
 
 import { cn } from "@/lib/utils";
 import {
@@ -97,9 +98,13 @@ export function DashboardSidebar() {
       {/* LOGO */}
       <div className="p-6 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-sidebar-primary flex items-center justify-center">
-            <Package className="h-5 w-5 text-sidebar-primary-foreground" />
-          </div>
+      <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-sm overflow-hidden p-1">
+  <img
+    src={logo}
+    alt="Logo"
+    className="w-full h-full object-contain"
+  />
+</div>
           <div>
             <h1 className="text-lg font-semibold text-sidebar-foreground">
               Production Result
