@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { LucideIcon, X, CheckCircle2 } from "lucide-react";
+import { X, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 
 /* ================================
    Hook: Fetch Formming Stats
@@ -11,19 +10,20 @@ export function useFetchFormmingStats(
   endDate: Date | undefined
 ) {
   const [statsData, setStatsData] = useState<any[]>([]);
-  const [totals, setTotals] = useState({ totalQtyProc: 0, totalQtyScrap: 0 });
-  const [categoryTotals, setCategoryTotals] = useState({
-    solid: { totalQtyProc: 0, totalQtyScrap: 0 },
-    twoton: { totalQtyProc: 0, totalQtyScrap: 0 },
-    others: { totalQtyProc: 0, totalQtyScrap: 0 },
+  const [lineSummary, setLineSummary] = useState<any[]>([]);
+  const [totals, setTotals] = useState({
+    totalQtyProc: 0,
+    totalQtyScrap: 0,
+    totalQtyMoved: 0,
   });
+
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!startDate || !endDate) return;
 
     const fetchData = async () => {
-      const dbProfile = "glaze";
+      const dbProfile = "formming";
       const envApi = (import.meta as any)?.env?.VITE_API_URL;
 
       const apiBase =
@@ -38,125 +38,77 @@ export function useFetchFormmingStats(
         const formattedStart = format(startDate, "yyyy-MM-dd");
         const formattedEnd = format(endDate, "yyyy-MM-dd");
 
-        // Main query - all lines grouped
         const mainQuery = `
-  SELECT 
-    [Line],
-    SUM([QtyProc]) AS TotalQtyProc,
-    SUM([QtyScrap]) AS TotalQtyScrap,
-    SUM([QtyMoved]) AS TotalQtyMoved
-  FROM [Db_glaze].[dbo].[glaze_trans]
-  WHERE [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
-  GROUP BY [Line]
-  ORDER BY [Line]
-`;
-
-        // Query for SOLID
-        const solidQuery = `
           SELECT 
+            [Line],
             SUM([QtyProc]) AS TotalQtyProc,
-            SUM([QtyScrap]) AS TotalQtyScrap,
-            SUM([QtyMoved]) AS TotalQtyMoved
-          FROM [Db_glaze].[dbo].[glaze_trans]
-          WHERE [Line] LIKE '42SOLID'
-          AND [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
-          ORDER BY [Line]
-        `;
-
-        // Query for TWOTON
-        const twotonQuery = `
-          SELECT 
-            SUM([QtyProc]) AS TotalQtyProc,
-            SUM([QtyScrap]) AS TotalQtyScrap,
-            SUM([QtyMoved]) AS TotalQtyMoved
-          FROM [Db_glaze].[dbo].[glaze_trans]
-          WHERE [Line] LIKE '42TWOTON'
-          AND [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
-          ORDER BY [Line]
-        `;
-
-        // Query for OTHERS
-        const othersQuery = `
-          SELECT 
-            SUM([QtyProc]) AS TotalQtyProc,
+            SUM([QtyMoved]) AS TotalQtyMoved,
             SUM([QtyScrap]) AS TotalQtyScrap
-          FROM [Db_glaze].[dbo].[glaze_trans]
-          WHERE [Line] NOT LIKE '42SOLID'
-          AND [Line] NOT LIKE '42TWOTON'
-          AND [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
+          FROM [Db_Formming].[dbo].[Formm_trans]
+          WHERE [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
+          GROUP BY [Line]
           ORDER BY [Line]
         `;
-        // Fetch all queries in parallel
-        const [mainResponse, solidResponse, twotonResponse, othersResponse] = await Promise.all([
+
+        const lineCodeQuery = `
+          SELECT 
+            SUBSTRING([Line],3,3) AS LineCode,
+            SUM([QtyProc])  AS TotalQtyProc,
+            SUM([QtyMoved]) AS TotalQtyMoved,
+            SUM([QtyScrap]) AS TotalQtyScrap
+          FROM [Db_Formming].[dbo].[Formm_trans]
+          WHERE [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
+          GROUP BY SUBSTRING([Line],3,3)
+          ORDER BY LineCode
+        `;
+
+        const [mainResponse, lineResponse] = await Promise.all([
           fetch(`${apiBase}/query`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ query: mainQuery, db: dbProfile }),
           }),
+
           fetch(`${apiBase}/query`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: solidQuery, db: dbProfile }),
-          }),
-          fetch(`${apiBase}/query`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: twotonQuery, db: dbProfile }),
-          }),
-          fetch(`${apiBase}/query`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: othersQuery, db: dbProfile }),
+            body: JSON.stringify({ query: lineCodeQuery, db: dbProfile }),
           }),
         ]);
 
         const mainPayload = await mainResponse.json();
-        const solidPayload = await solidResponse.json();
-        const twotonPayload = await twotonResponse.json();
-        const othersPayload = await othersResponse.json();
+        const linePayload = await lineResponse.json();
 
         const records = mainPayload?.recordset || [];
-        setStatsData(records);
+        const lineRecords = linePayload?.recordset || [];
 
-        // Calculate overall totals
+        setStatsData(records);
+        setLineSummary(lineRecords);
+
         const totalQtyProc = records.reduce(
           (sum: number, item: any) => sum + Number(item.TotalQtyProc ?? 0),
           0
         );
+
+        const totalQtyMoved = records.reduce(
+          (sum: number, item: any) => sum + Number(item.TotalQtyMoved ?? 0),
+          0
+        );
+
         const totalQtyScrap = records.reduce(
           (sum: number, item: any) => sum + Number(item.TotalQtyScrap ?? 0),
           0
         );
-        setTotals({ totalQtyProc, totalQtyScrap });
 
-        // Set category totals
-        const solidData = solidPayload?.recordset?.[0] || {};
-        const twotonData = twotonPayload?.recordset?.[0] || {};
-        const othersData = othersPayload?.recordset?.[0] || {};
-
-        setCategoryTotals({
-          solid: {
-            totalQtyProc: Number(solidData.TotalQtyProc ?? 0),
-            totalQtyScrap: Number(solidData.TotalQtyScrap ?? 0),
-          },
-          twoton: {
-            totalQtyProc: Number(twotonData.TotalQtyProc ?? 0),
-            totalQtyScrap: Number(twotonData.TotalQtyScrap ?? 0),
-          },
-          others: {
-            totalQtyProc: Number(othersData.TotalQtyProc ?? 0),
-            totalQtyScrap: Number(othersData.TotalQtyScrap ?? 0),
-          },
+        setTotals({
+          totalQtyProc,
+          totalQtyMoved,
+          totalQtyScrap,
         });
       } catch (err) {
-        console.error("Fetch error:", err);
+        console.error(err);
         setStatsData([]);
-        setTotals({ totalQtyProc: 0, totalQtyScrap: 0 });
-        setCategoryTotals({
-          solid: { totalQtyProc: 0, totalQtyScrap: 0 },
-          twoton: { totalQtyProc: 0, totalQtyScrap: 0 },
-          others: { totalQtyProc: 0, totalQtyScrap: 0 },
-        });
+        setLineSummary([]);
       } finally {
         setLoading(false);
       }
@@ -165,96 +117,91 @@ export function useFetchFormmingStats(
     fetchData();
   }, [startDate, endDate]);
 
-  return { statsData, totals, categoryTotals, loading };
+  return {
+    statsData,
+    lineSummary,
+    totals,
+    loading,
+  };
 }
 
 /* ================================
-   Stat Card Component
+   Stat Card
 ================================ */
-
-interface StatCardGlazeProps {
+interface StatCardFormmProps {
   title: string;
   value: string;
   change?: string;
-  changeType: "positive" | "negative" | "neutral";
   scrap?: string;
-  scrapType : "positive" | "negative" | "neutral";
-  icon: LucideIcon;
-  delay?: number;
-  className?: string;
-  valueClassName?: string;
-  titleClassName?: string;
 }
 
-export function StatCardGlaze({
+export function StatCardFormm({
   title,
   value,
   change,
-  changeType,
   scrap,
-  scrapType,
-  icon: Icon,
-  delay = 0,
-  className = "",
-  valueClassName = "",
-  titleClassName = "",
-}: StatCardGlazeProps) {
+}: StatCardFormmProps) {
   return (
-    <div
-      className={cn(
-        "rounded-xl border bg-card p-6 shadow-sm transition-all duration-300",
-        className
-      )}
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col">
-          <p
-            className={cn(
-              "text-sm font-medium text-muted-foreground",
-              titleClassName
-            )}
-          >
-            {title}
-          </p>
+    <div className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-md transition">
+      <div>
+        <p className="text-xl font-semibold text-blue-700">{title}</p>
 
-          <p
-            className={cn(
-              "text-3xl font-semibold mt-1",
-              valueClassName
-            )}
-          >
-            {value}
-          </p>
+        <p className="text-3xl font-bold mt-2 text-slate-800">{value}</p>
 
-          {change !== undefined && (
-            <div
-              className={cn(
-                "flex items-center gap-1 text-sm mt-1 font-medium",
-                changeType === "positive" && "text-green-600",
-                changeType === "negative" && "text-red-600",
-                changeType === "neutral" && "text-muted-foreground"
-              )}
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              <span>ยอด A {change}</span>
-            </div>
-          )}
+        {change && (
+          <div className="flex items-center gap-1 mt-3 text-green-600 text-sm font-medium">
+            <CheckCircle2 className="h-4 w-4" />
+            <span>ยอด A {change}</span>
+          </div>
+        )}
 
-          {scrap !== undefined && (
-            <div className="flex items-center gap-1 text-sm mt-1 font-medium text-red-600">
-              <X className="h-4 w-4" />
-              <span>Scrap {scrap}</span>
-            </div>
-          )}
-          
-          
-        </div>
-
-        <div className="h-12 w-12 rounded-lg bg-accent flex items-center justify-center">
-          <Icon className="h-6 w-6 text-accent-foreground" />
-        </div>
+        {scrap && (
+          <div className="flex items-center gap-1 mt-1 text-red-600 text-sm font-medium">
+            <X className="h-4 w-4" />
+            <span>Scrap {scrap}</span>
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+/* ================================
+   LineCode Blocks
+================================ */
+export function LineCodeBlocks({ data }: { data: any[] }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-4 mt-5">
+      {data.map((item, index) => (
+        <div
+          key={index}
+          className="rounded-2xl border bg-card p-5 shadow-sm hover:shadow-md transition"
+        >
+          <div className="mb-3">
+            <p className="text-sm font-medium text-slate-500">
+              Line Code
+            </p>
+
+            <p className="text-2xl font-bold text-blue-700">
+              {item.LineCode}
+            </p>
+          </div>
+
+          <div className="space-y-1 text-sm font-medium">
+            <p className="text-slate-700">
+              Proc : {Number(item.TotalQtyProc).toLocaleString()}
+            </p>
+
+            <p className="text-green-600">
+              ยอด A : {Number(item.TotalQtyMoved).toLocaleString()}
+            </p>
+
+            <p className="text-red-600">
+              Scrap : {Number(item.TotalQtyScrap).toLocaleString()}
+            </p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

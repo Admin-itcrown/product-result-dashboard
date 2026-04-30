@@ -199,7 +199,7 @@ export function CategoryChartGlaze({
 
   return (
     <div
-      className="sticky top-6 bg-card rounded-lg border border-border p-6 shadow-card opacity-0 animate-fade-in"
+      className="bg-card rounded-lg border border-border p-6 shadow-card opacity-0 animate-fade-in"
       style={{
         animationDelay: "250ms",
       }}

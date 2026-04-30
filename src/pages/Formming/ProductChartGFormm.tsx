@@ -177,7 +177,7 @@ export function ProductChartFormming() {
 
         <div className="flex justify-between items-center mb-5 pr-10">
           <h3 className="text-xl font-semibold text-gray-800">
-            Product Performance Glaze
+            Product Performance Formming
           </h3>
 
           <div className="flex gap-3">

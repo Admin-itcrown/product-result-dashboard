@@ -93,7 +93,7 @@ export function CategoryChartFormming({
           SELECT 
             LEFT([Clay],1) AS ClayGroup,
             SUM([QtyProc]) AS TotalQtyProc
-          FROM [Db_glaze].[dbo].[glaze_trans]
+          FROM [Db_Formming].[dbo].[Formm_trans]
         `;
 
         if (startStr && endStr) {

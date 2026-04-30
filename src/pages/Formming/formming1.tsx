@@ -1,129 +1,78 @@
 import React from "react";
-import { Coffee, Wine, Calendar,CupSoda,GlassWater,Milk,Factory,PackageCheck,Blend,Boxes } from "lucide-react";
+import {
+  Factory,
+  Boxes,
+  Calendar,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 
-import { StatCardGlaze, useFetchFormmingStats } from "./StatCardFormm";
+import {
+  StatCardFormm,
+  useFetchFormmingStats,
+} from "./StatCardFormm";
+
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { ProductTableFormm } from "./ProductTableFormm";
 import { ProductChartFormming } from "./ProductChartGFormm";
 import { CategoryChartFormming } from "./CategoryChartFormm";
 
-const Glaze1 = () => {
+const Formming1 = () => {
   const [startDate, setStartDate] = React.useState<Date | undefined>(new Date());
   const [endDate, setEndDate] = React.useState<Date | undefined>(new Date());
 
   const [showStart, setShowStart] = React.useState(false);
   const [showEnd, setShowEnd] = React.useState(false);
+  const [showMore, setShowMore] = React.useState(false);
 
-  const { statsData, loading } = useFetchFormmingStats(startDate, endDate);
+  const { statsData, lineSummary, loading } =
+    useFetchFormmingStats(startDate, endDate);
 
-  /* ===============================
-     รวมยอดทั้งหมด
-  =============================== */
-  const statsSumNumber = statsData.reduce(
+  const totalProc = statsData.reduce(
     (sum: number, item: any) => sum + Number(item.TotalQtyProc ?? 0),
     0
   );
 
-  const statsSumScrap = statsData.reduce(
-    (sum: number, item: any) => sum + Number(item.TotalQtyScrap ?? 0),
-    0
-  );
-
-  const statsSumMoved = statsData.reduce(
+  const totalMoved = statsData.reduce(
     (sum: number, item: any) => sum + Number(item.TotalQtyMoved ?? 0),
     0
   );
 
-  /* ===============================
-     แยกกลุ่ม
-  =============================== */
-  let solideSum = 0;
-  let solidScrap = 0;
-  let solidMoved = 0;
+  const totalScrap = statsData.reduce(
+    (sum: number, item: any) => sum + Number(item.TotalQtyScrap ?? 0),
+    0
+  );
 
-  let treetonSum = 0;
-  let treetonScrap = 0;
-  let twotonMoved = 0;
-
-  let othersSum = 0;
-  let othersScrap = 0;
-  let othersMoved = 0;
-
-  statsData.forEach((item: any) => {
-    const line = String(item.Line || "");
-
-    const proc = Number(item.TotalQtyProc ?? 0);
-    const scrap = Number(item.TotalQtyScrap ?? 0);
-    const moved = Number(item.TotalQtyMoved ?? 0);
-
-    if (line === "42SOLID") {
-      solideSum += proc;
-      solidScrap += scrap;
-      solidMoved += moved;
-    } else if (line.includes("42TWOTON")) {
-      treetonSum += proc;
-      treetonScrap += scrap;
-      twotonMoved += moved;
-    } else {
-      othersSum += proc;
-      othersScrap += scrap;
-      othersMoved += moved;
-    }
-  });
-
-  /* ===============================
-     Cards
-  =============================== */
-  const stats = [
+  const allCards = [
     {
-      title: "Total",
-      value: loading ? "Loading..." : statsSumNumber.toLocaleString(),
-      change: loading ? "" : statsSumMoved.toLocaleString(),
-      changeType: "positive" as const,
-      scrap: loading ? "" : statsSumScrap.toLocaleString(),
-      scrapType: "neutral" as const,
+      title: "Formming Total",
+      value: loading ? "Loading..." : totalProc.toLocaleString(),
+      change: loading ? "" : totalMoved.toLocaleString(),
+      scrap: loading ? "" : totalScrap.toLocaleString(),
       icon: Factory,
-      titleClassName: "text-black text-xl",
-      valueClassName: "text-blue-700 text-3xl",
     },
 
-    {
-      title: "SOLID",
-      value: loading ? "Loading..." : solideSum.toLocaleString(),
-      change: loading ? "" : solidMoved.toLocaleString(),
-      changeType: "positive" as const,
-      scrap: loading ? "" : solidScrap.toLocaleString(),
-      scrapType: "neutral" as const,
-      icon: Coffee,
-      titleClassName: "text-black",
-    },
+    ...lineSummary.map((item: any) => ({
+      title: item.LineCode,
+      value: loading
+        ? "Loading..."
+        : Number(item.TotalQtyProc ?? 0).toLocaleString(),
 
-    {
-      title: "TWOTON",
-      value: loading ? "Loading..." : treetonSum.toLocaleString(),
-      change: loading ? "" : twotonMoved.toLocaleString(),
-      changeType: "positive" as const,
-      scrap: loading ? "" : treetonScrap.toLocaleString(),
-      scrapType: "neutral" as const,
-      icon: GlassWater,
-      titleClassName: "text-black",
-    },
+      change: loading
+        ? ""
+        : Number(item.TotalQtyMoved ?? 0).toLocaleString(),
 
-    {
-      title: "Others",
-      value: loading ? "Loading..." : othersSum.toLocaleString(),
-      change: loading ? "" : othersMoved.toLocaleString(),
-      changeType: "positive" as const,
-      scrap: loading ? "" : othersScrap.toLocaleString(),
-      scrapType: "neutral" as const,
+      scrap: loading
+        ? ""
+        : Number(item.TotalQtyScrap ?? 0).toLocaleString(),
+
       icon: Boxes,
-      titleClassName: "text-black",
-    },
+    })),
   ];
 
   const dayPickerProps = {
@@ -133,20 +82,10 @@ const Glaze1 = () => {
     fromYear: 2020,
     toYear: 2035,
     showOutsideDays: true,
-    classNames: {
-      caption: "flex justify-center gap-2 mb-4",
-      caption_label: "hidden",
-      caption_dropdowns: "flex gap-2",
-      dropdown: "px-2 py-1 border rounded-md text-sm bg-white",
-      table: "w-full",
-      head_cell: "text-xs font-semibold text-gray-500 text-center",
-      day: "h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition",
-      day_selected: "bg-blue-600 text-white hover:bg-blue-600",
-    },
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-slate-50">
       <DashboardSidebar />
 
       <div className="flex-1 flex flex-col">
@@ -154,18 +93,27 @@ const Glaze1 = () => {
 
         <main className="flex-1 p-6 overflow-auto">
 
+          {/* Header */}
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-slate-800">
+              Formming Dashboard
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              สรุปยอดการผลิต / ยอด A / Scrap
+            </p>
+          </div>
+
           {/* Date Filter */}
           <div className="mb-6 flex gap-8 items-center flex-wrap">
 
             {/* Start */}
             <div className="relative flex items-center gap-3">
-              <label className="text-sm font-medium whitespace-nowrap">
-                วันที่เริ่มต้น:
+              <label className="text-sm font-semibold text-blue-700">
+                วันที่เริ่มต้น
               </label>
 
               <div className="relative">
                 <input
-                  type="text"
                   readOnly
                   value={
                     startDate
@@ -173,18 +121,18 @@ const Glaze1 = () => {
                       : ""
                   }
                   onClick={() => setShowStart(!showStart)}
-                  className="px-3 py-2 pr-10 border rounded-lg bg-card cursor-pointer w-44"
+                  className="px-3 py-2 pr-10 rounded-xl bg-white shadow-sm w-44 cursor-pointer"
                 />
 
                 <Calendar
                   size={18}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer"
                   onClick={() => setShowStart(!showStart)}
                 />
               </div>
 
               {showStart && (
-                <div className="absolute top-12 left-0 z-50 bg-white shadow-xl rounded-xl p-4">
+                <div className="absolute top-12 left-0 z-50 bg-white shadow-xl rounded-2xl p-4">
                   <DayPicker
                     {...dayPickerProps}
                     selected={startDate}
@@ -199,13 +147,12 @@ const Glaze1 = () => {
 
             {/* End */}
             <div className="relative flex items-center gap-3">
-              <label className="text-sm font-medium whitespace-nowrap">
-                วันที่สิ้นสุด:
+              <label className="text-sm font-semibold text-red-700">
+                วันที่สิ้นสุด
               </label>
 
               <div className="relative">
                 <input
-                  type="text"
                   readOnly
                   value={
                     endDate
@@ -213,18 +160,18 @@ const Glaze1 = () => {
                       : ""
                   }
                   onClick={() => setShowEnd(!showEnd)}
-                  className="px-3 py-2 pr-10 border rounded-lg bg-card cursor-pointer w-44"
+                  className="px-3 py-2 pr-10 rounded-xl bg-white shadow-sm w-44 cursor-pointer"
                 />
 
                 <Calendar
                   size={18}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer"
                   onClick={() => setShowEnd(!showEnd)}
                 />
               </div>
 
               {showEnd && (
-                <div className="absolute top-12 left-0 z-50 bg-white shadow-xl rounded-xl p-4">
+                <div className="absolute top-12 left-0 z-50 bg-white shadow-xl rounded-2xl p-4">
                   <DayPicker
                     {...dayPickerProps}
                     selected={endDate}
@@ -239,30 +186,72 @@ const Glaze1 = () => {
           </div>
 
           {/* Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            {stats.map((stat, index) => (
-              <StatCardGlaze
-                key={stat.title}
-                {...stat}
-                delay={index * 50}
-              />
-            ))}
+          <div className="space-y-5 mb-8">
+
+            {/* Row 1 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-12 gap-5">
+
+              <div className="xl:col-span-4">
+                <StatCardFormm {...allCards[0]} />
+              </div>
+
+              {allCards.slice(1, 5).map((stat, index) => (
+                <div key={index} className="xl:col-span-2">
+                  <StatCardFormm {...stat} />
+                </div>
+              ))}
+            </div>
+
+            {/* Row 2 */}
+            {showMore && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-12 gap-5">
+                {allCards.slice(5, 11).map((stat, index) => (
+                  <div key={index} className="xl:col-span-2">
+                    <StatCardFormm {...stat} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Arrow */}
+            {allCards.length > 5 && (
+              <div className="flex justify-center">
+                <button
+                  onClick={() => setShowMore(!showMore)}
+                  className="h-10 w-10 rounded-full bg-white shadow hover:scale-105 transition"
+                >
+                  <div className="flex items-center justify-center h-full">
+                    {showMore ? (
+                      <ChevronUp size={18} />
+                    ) : (
+                      <ChevronDown size={18} />
+                    )}
+                  </div>
+                </button>
+              </div>
+            )}
+
           </div>
 
           {/* Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div className="lg:col-span-2">
               <ProductChartFormming />
             </div>
 
-            <CategoryChartFormming startDate={startDate} endDate={endDate} />
+            <CategoryChartFormming
+              startDate={startDate}
+              endDate={endDate}
+            />
           </div>
 
+          {/* Table */}
           <ProductTableFormm />
+
         </main>
       </div>
     </div>
   );
 };
 
-export default Glaze1;
+export default Formming1;
