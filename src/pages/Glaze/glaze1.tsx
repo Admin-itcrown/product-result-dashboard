@@ -153,13 +153,22 @@ const Glaze1 = () => {
         <DashboardHeader />
 
         <main className="flex-1 p-6 overflow-auto">
+            {/* Header */}
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold text-slate-900">
+              Glaze Dashboard
+            </h1>
+            <p className="text-slate-500 mt-1">
+              สรุปยอดการผลิต / ยอด A / Scrap
+            </p>
+          </div>
 
           {/* Date Filter */}
           <div className="mb-6 flex gap-8 items-center flex-wrap">
 
             {/* Start */}
             <div className="relative flex items-center gap-3">
-              <label className="text-sm font-medium whitespace-nowrap">
+              <label className="text-sm font-semibold text-blue-700">
                 วันที่เริ่มต้น:
               </label>
 
@@ -199,7 +208,7 @@ const Glaze1 = () => {
 
             {/* End */}
             <div className="relative flex items-center gap-3">
-              <label className="text-sm font-medium whitespace-nowrap">
+              <label className="text-sm font-semibold text-red-700">
                 วันที่สิ้นสุด:
               </label>
 

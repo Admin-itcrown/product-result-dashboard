@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  Factory,
-  Boxes,
-  Calendar,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
+import { Factory, Boxes, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { DayPicker } from "react-day-picker";
@@ -33,6 +27,9 @@ const Formming1 = () => {
   const { statsData, lineSummary, loading } =
     useFetchFormmingStats(startDate, endDate);
 
+  /* ===============================
+     Total Summary
+  =============================== */
   const totalProc = statsData.reduce(
     (sum: number, item: any) => sum + Number(item.TotalQtyProc ?? 0),
     0
@@ -48,6 +45,9 @@ const Formming1 = () => {
     0
   );
 
+  /* ===============================
+     Cards Data
+  =============================== */
   const allCards = [
     {
       title: "Formming Total",
@@ -75,6 +75,21 @@ const Formming1 = () => {
     })),
   ];
 
+  /* ===============================
+     ถ้าไม่มีข้อมูล ให้โชว์บล็อคว่าง
+  =============================== */
+  const firstRow =
+    allCards.length > 1
+      ? allCards.slice(1, 5)
+      : [
+          { title: "---", value: "0", change: "0", scrap: "0" },
+          { title: "---", value: "0", change: "0", scrap: "0" },
+          { title: "---", value: "0", change: "0", scrap: "0" },
+          { title: "---", value: "0", change: "0", scrap: "0" },
+        ];
+
+  const secondRow = allCards.slice(5);
+
   const dayPickerProps = {
     mode: "single" as const,
     locale: th,
@@ -85,7 +100,7 @@ const Formming1 = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-slate-100">
       <DashboardSidebar />
 
       <div className="flex-1 flex flex-col">
@@ -95,21 +110,21 @@ const Formming1 = () => {
 
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-slate-800">
+            <h1 className="text-3xl font-bold text-slate-900">
               Formming Dashboard
             </h1>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-slate-500 mt-1">
               สรุปยอดการผลิต / ยอด A / Scrap
             </p>
           </div>
 
           {/* Date Filter */}
-          <div className="mb-6 flex gap-8 items-center flex-wrap">
+          <div className="mb-8 flex gap-10 items-center flex-wrap">
 
             {/* Start */}
             <div className="relative flex items-center gap-3">
               <label className="text-sm font-semibold text-blue-700">
-                วันที่เริ่มต้น
+                วันที่เริ่มต้น:
               </label>
 
               <div className="relative">
@@ -121,7 +136,7 @@ const Formming1 = () => {
                       : ""
                   }
                   onClick={() => setShowStart(!showStart)}
-                  className="px-3 py-2 pr-10 rounded-xl bg-white shadow-sm w-44 cursor-pointer"
+                  className="px-4 py-3 pr-10 rounded-2xl bg-white shadow-sm w-56 cursor-pointer font-medium text-slate-700"
                 />
 
                 <Calendar
@@ -132,7 +147,7 @@ const Formming1 = () => {
               </div>
 
               {showStart && (
-                <div className="absolute top-12 left-0 z-50 bg-white shadow-xl rounded-2xl p-4">
+                <div className="absolute top-14 left-0 z-50 bg-white shadow-xl rounded-2xl p-4">
                   <DayPicker
                     {...dayPickerProps}
                     selected={startDate}
@@ -148,7 +163,7 @@ const Formming1 = () => {
             {/* End */}
             <div className="relative flex items-center gap-3">
               <label className="text-sm font-semibold text-red-700">
-                วันที่สิ้นสุด
+                วันที่สิ้นสุด:
               </label>
 
               <div className="relative">
@@ -160,7 +175,7 @@ const Formming1 = () => {
                       : ""
                   }
                   onClick={() => setShowEnd(!showEnd)}
-                  className="px-3 py-2 pr-10 rounded-xl bg-white shadow-sm w-44 cursor-pointer"
+                  className="px-4 py-3 pr-10 rounded-2xl bg-white shadow-sm w-56 cursor-pointer font-medium text-slate-700"
                 />
 
                 <Calendar
@@ -171,7 +186,7 @@ const Formming1 = () => {
               </div>
 
               {showEnd && (
-                <div className="absolute top-12 left-0 z-50 bg-white shadow-xl rounded-2xl p-4">
+                <div className="absolute top-14 left-0 z-50 bg-white shadow-xl rounded-2xl p-4">
                   <DayPicker
                     {...dayPickerProps}
                     selected={endDate}
@@ -188,24 +203,26 @@ const Formming1 = () => {
           {/* Cards */}
           <div className="space-y-5 mb-8">
 
-            {/* Row 1 */}
+            {/* แถวแรก */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-12 gap-5">
 
+              {/* Total */}
               <div className="xl:col-span-4">
                 <StatCardFormm {...allCards[0]} />
               </div>
 
-              {allCards.slice(1, 5).map((stat, index) => (
+              {/* 4 block */}
+              {firstRow.map((stat, index) => (
                 <div key={index} className="xl:col-span-2">
                   <StatCardFormm {...stat} />
                 </div>
               ))}
             </div>
 
-            {/* Row 2 */}
-            {showMore && (
+            {/* แถวสอง */}
+            {showMore && secondRow.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-12 gap-5">
-                {allCards.slice(5, 11).map((stat, index) => (
+                {secondRow.map((stat, index) => (
                   <div key={index} className="xl:col-span-2">
                     <StatCardFormm {...stat} />
                   </div>
@@ -213,20 +230,14 @@ const Formming1 = () => {
               </div>
             )}
 
-            {/* Arrow */}
-            {allCards.length > 5 && (
-              <div className="flex justify-center">
+            {/* ลูกศร */}
+            {secondRow.length > 0 && (
+              <div className="flex justify-center pt-1">
                 <button
                   onClick={() => setShowMore(!showMore)}
-                  className="h-10 w-10 rounded-full bg-white shadow hover:scale-105 transition"
+                  className="h-11 w-11 rounded-full bg-white shadow hover:shadow-md hover:scale-105 transition text-slate-700 font-bold"
                 >
-                  <div className="flex items-center justify-center h-full">
-                    {showMore ? (
-                      <ChevronUp size={18} />
-                    ) : (
-                      <ChevronDown size={18} />
-                    )}
-                  </div>
+                  {showMore ? "▲" : "▼"}
                 </button>
               </div>
             )}

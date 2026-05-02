@@ -1,67 +1,63 @@
 import { useEffect, useState } from "react";
 import {
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
+  Cell,
+  LabelList,
+  LineChart,
+  Line,
 } from "recharts";
-import { Maximize2, X } from "lucide-react";
+import {
+  Maximize2,
+  X,
+  Trophy,
+  Calendar,
+  TrendingUp,
+  Crown,
+  BarChart3,
+} from "lucide-react";
 
 export function ProductChartFormming() {
   const today = new Date();
 
-  const [mode, setMode] = useState("month");
-  const [selectedMonth, setSelectedMonth] = useState(
-    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`
-  );
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
 
   const [data, setData] = useState<any[]>([]);
+  const [monthData, setMonthData] = useState<any[]>([]);
+
   const [loading, setLoading] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const [selectedCustomer, setSelectedCustomer] = useState("");
+  const [showDetail, setShowDetail] = useState(false);
 
   useEffect(() => {
     fetchData();
-  }, [mode, selectedMonth, selectedYear]);
+  }, [selectedYear]);
+
+  const dbProfile = "Formming";
+
+  const envApi = (import.meta as any)?.env?.VITE_API_URL;
+  const apiBase =
+    envApi ||
+    `${window.location.protocol}//${window.location.hostname}:3001`;
 
   const fetchData = async () => {
-    const dbProfile = "glaze";
-
-    const envApi = (import.meta as any)?.env?.VITE_API_URL;
-    const apiBase =
-      envApi ||
-      `${window.location.protocol}//${window.location.hostname}:3001`;
-
-    let whereDate = "";
-    let groupBy = "";
-    let label = "";
-
-    if (mode === "month") {
-      whereDate = `FORMAT([Date],'yyyy-MM')='${selectedMonth}'`;
-      groupBy = "DAY([Date])";
-      label = "CAST(DAY([Date]) AS VARCHAR)";
-    }
-
-    if (mode === "year") {
-      whereDate = `YEAR([Date])=${selectedYear}`;
-      groupBy = "MONTH([Date])";
-      label = "FORMAT([Date],'MMM')";
-    }
-
     const query = `
-      SELECT
-        ${label} AS Period,
-        SUM(CASE WHEN Line = '42SOLID' THEN [QtyMoved] ELSE 0 END) AS SOLID,
-        SUM(CASE WHEN Line = '42TWOTON' THEN [QtyMoved] ELSE 0 END) AS TWOTON,
-        SUM(CASE WHEN Line NOT IN ('42SOLID','42TWOTON') THEN [QtyMoved] ELSE 0 END) AS Others
-      FROM glaze_trans
-      WHERE ${whereDate}
-      GROUP BY ${groupBy}, ${label}
-      ORDER BY ${groupBy}
+      SELECT TOP 3
+        [Description2] AS Customer,
+        SUM([QtyMoved]) AS TotalA
+      FROM [Db_Formming].[dbo].[Formm_trans]
+      WHERE YEAR([Date]) = ${selectedYear}
+      GROUP BY [Description2]
+      ORDER BY SUM([QtyMoved]) DESC
     `;
 
     setLoading(true);
@@ -74,14 +70,13 @@ export function ProductChartFormming() {
       });
 
       const payload = await res.json();
+
       const raw = payload?.recordset || [];
 
       setData(
         raw.map((row: any) => ({
-          name: row.Period,
-          SOLID: Number(row.SOLID || 0),
-          TWOTON: Number(row.TWOTON || 0),
-          Others: Number(row.Others || 0),
+          name: row.Customer,
+          ยอดA: Number(row.TotalA || 0),
         }))
       );
     } catch (error) {
@@ -92,152 +87,271 @@ export function ProductChartFormming() {
     }
   };
 
-  const COLORS = {
-    SOLID: { stroke: "#1e3a8a", fill: "#3b82f6" },
-    TWOTON: { stroke: "#c2410c", fill: "#fb923c" },
-    Others: { stroke: "#166534", fill: "#4ade80" },
+  const fetchMonthly = async (customer: string) => {
+    const query = `
+      SELECT
+        FORMAT([Date],'MMM') AS MonthName,
+        MONTH([Date]) AS MonthNo,
+        SUM([QtyMoved]) AS TotalA
+      FROM [Db_Formming].[dbo].[Formm_trans]
+      WHERE YEAR([Date]) = ${selectedYear}
+      AND [Description2] = '${customer}'
+      GROUP BY MONTH([Date]), FORMAT([Date],'MMM')
+      ORDER BY MONTH([Date])
+    `;
+
+    setDetailLoading(true);
+
+    try {
+      const res = await fetch(`${apiBase}/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, db: dbProfile }),
+      });
+
+      const payload = await res.json();
+
+      const raw = payload?.recordset || [];
+
+      setMonthData(
+        raw.map((row: any) => ({
+          name: row.MonthName,
+          ยอดA: Number(row.TotalA || 0),
+        }))
+      );
+    } catch (error) {
+      console.error(error);
+      setMonthData([]);
+    } finally {
+      setDetailLoading(false);
+    }
   };
 
-  const ChartBox = () => (
-    <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={data}>
-        <defs>
-          <linearGradient id="solidGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.6} />
-            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
-          </linearGradient>
+  const handleBarClick = (item: any) => {
+    setSelectedCustomer(item.name);
+    setShowDetail(true);
+    fetchMonthly(item.name);
+  };
 
-          <linearGradient id="twotonGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#fb923c" stopOpacity={0.6} />
-            <stop offset="95%" stopColor="#fb923c" stopOpacity={0.05} />
-          </linearGradient>
+  const COLORS = ["#2563eb", "#f97316", "#22c55e"];
 
-          <linearGradient id="otherGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#4ade80" stopOpacity={0.5} />
-            <stop offset="95%" stopColor="#4ade80" stopOpacity={0.05} />
-          </linearGradient>
-        </defs>
-
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-        <XAxis dataKey="name" />
-        <YAxis />
-
-        <Tooltip
-          contentStyle={{
-            backgroundColor: "#fff",
-            border: "1px solid #e5e7eb",
-            borderRadius: "12px",
-          }}
-        />
-
-        <Legend />
-
-        <Area
-          type="monotone"
-          dataKey="SOLID"
-          stroke={COLORS.SOLID.stroke}
-          fill="url(#solidGrad)"
-          strokeWidth={2.5}
-        />
-
-        <Area
-          type="monotone"
-          dataKey="TWOTON"
-          stroke={COLORS.TWOTON.stroke}
-          fill="url(#twotonGrad)"
-          strokeWidth={2.5}
-        />
-
-        <Area
-          type="monotone"
-          dataKey="Others"
-          stroke={COLORS.Others.stroke}
-          fill="url(#otherGrad)"
-          strokeWidth={2.5}
-        />
-      </AreaChart>
-    </ResponsiveContainer>
-  );
+  const total = data.reduce((sum, item) => sum + item.ยอดA, 0);
+  const topCustomer = data[0];
 
   const yearOptions = Array.from(
     { length: 6 },
     (_, i) => today.getFullYear() - i
   );
 
+  const MainChart = () => (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart
+        data={data}
+        margin={{ top: 30, right: 20, left: 35, bottom: 45 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+
+        <XAxis
+          dataKey="name"
+          angle={-12}
+          textAnchor="end"
+          interval={0}
+          height={60}
+        />
+
+        <YAxis
+          width={75}
+          tickFormatter={(v) =>
+            Number(v).toLocaleString()
+          }
+        />
+
+        <Tooltip
+          formatter={(v: any) => [
+            Number(v).toLocaleString(),
+            "ยอด A",
+          ]}
+        />
+
+        <Bar
+          dataKey="ยอดA"
+          radius={[10, 10, 0, 0]}
+          onClick={handleBarClick}
+          cursor="pointer"
+        >
+          {data.map((_: any, index: number) => (
+            <Cell
+              key={index}
+              fill={COLORS[index % COLORS.length]}
+            />
+          ))}
+
+          <LabelList
+            dataKey="ยอดA"
+            position="top"
+            formatter={(v: any) =>
+              Number(v).toLocaleString()
+            }
+          />
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  );
+
+  const DetailChart = () => (
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart
+        data={monthData}
+        margin={{ top: 20, right: 20, left: 20, bottom: 10 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+
+        <XAxis dataKey="name" />
+
+        <YAxis
+          tickFormatter={(v) =>
+            Number(v).toLocaleString()
+          }
+        />
+
+        <Tooltip
+          formatter={(v: any) => [
+            Number(v).toLocaleString(),
+            "ยอด A",
+          ]}
+        />
+
+        <Line
+          type="monotone"
+          dataKey="ยอดA"
+          stroke="#2563eb"
+          strokeWidth={4}
+          dot={{ r: 5 }}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+
   return (
     <>
-      <div className="bg-white rounded-2xl border shadow-lg p-6 relative">
+      <div className="bg-gradient-to-br from-white to-slate-50 rounded-3xl border shadow-xl p-6 relative">
 
         <button
           onClick={() => setIsFullscreen(true)}
-          className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100"
+          className="absolute top-5 right-5 p-2 rounded-xl border hover:bg-white"
         >
           <Maximize2 size={18} />
         </button>
 
-        <div className="flex justify-between items-center mb-5 pr-10">
-          <h3 className="text-xl font-semibold text-gray-800">
-            Product Performance Formming
-          </h3>
+        <div className="flex justify-between items-start mb-6 pr-12">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Trophy className="text-yellow-500" size={20} />
+              <h3 className="text-2xl font-bold">
+                Top 3 ลูกค้า (ยอด A)
+              </h3>
+            </div>
 
-          <div className="flex gap-3">
+            <p className="text-sm text-slate-500">
+              คลิกแท่งกราฟเพื่อดูรายเดือน
+            </p>
+          </div>
+
+          <div className="bg-white border rounded-xl px-3 py-2">
             <select
-              value={mode}
-              onChange={(e) => setMode(e.target.value)}
-              className="border rounded-lg px-3 py-1"
+              value={selectedYear}
+              onChange={(e) =>
+                setSelectedYear(Number(e.target.value))
+              }
             >
-              <option value="month">รายเดือน</option>
-              <option value="year">รายปี</option>
+              {yearOptions.map((y) => (
+                <option key={y}>{y}</option>
+              ))}
             </select>
-
-            {mode === "month" && (
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="border rounded-lg px-3 py-1"
-              />
-            )}
-
-            {mode === "year" && (
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="border rounded-lg px-3 py-1"
-              >
-                {yearOptions.map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-            )}
           </div>
         </div>
 
-        <div className="h-[380px]">
+        <div className="grid grid-cols-2 gap-4 mb-5">
+          <div className="bg-white rounded-2xl p-4 border">
+            <p className="text-sm text-slate-500">ยอดรวม Top 3</p>
+            <p className="text-2xl font-bold text-blue-600">
+              {total.toLocaleString()}
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4 border">
+            <p className="text-sm text-slate-500">อันดับ 1</p>
+            <p className="font-bold text-amber-600 flex gap-2 items-center">
+              <Crown size={18} />
+              {topCustomer?.name || "-"}
+            </p>
+          </div>
+        </div>
+
+        <div className="h-[390px]">
           {loading ? (
-            <div className="flex items-center justify-center h-full text-gray-400">
-              Loading chart...
+            <div className="h-full flex justify-center items-center">
+              Loading...
             </div>
           ) : (
-            <ChartBox />
+            <MainChart />
           )}
+        </div>
+
+        <div className="mt-4 text-xs text-slate-500 flex gap-2 items-center">
+          <TrendingUp size={14} />
+          Dashboard Drill Down Analysis
         </div>
       </div>
 
-      {isFullscreen && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
-          <div className="bg-white w-[95vw] h-[90vh] rounded-2xl flex flex-col">
+      {showDetail && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-6">
+          <div className="bg-white rounded-3xl w-full max-w-5xl h-[80vh] shadow-2xl flex flex-col">
 
-            <div className="border-b px-6 py-4 flex justify-between">
-              <h3 className="font-semibold text-lg">Product Performance Glaze</h3>
-              <button onClick={() => setIsFullscreen(false)}>
+            <div className="border-b px-6 py-4 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold flex items-center gap-2">
+                  <BarChart3 size={20} />
+                  {selectedCustomer}
+                </h3>
+
+                <p className="text-sm text-slate-500">
+                  ยอด A รายเดือน ปี {selectedYear}
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowDetail(false)}
+                className="p-2 rounded-xl hover:bg-slate-100"
+              >
                 <X />
               </button>
             </div>
 
             <div className="flex-1 p-6">
-              <ChartBox />
+              {detailLoading ? (
+                <div className="h-full flex justify-center items-center">
+                  Loading...
+                </div>
+              ) : (
+                <DetailChart />
+              )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {isFullscreen && (
+        <div className="fixed inset-0 bg-black/60 z-40 flex justify-center items-center p-6">
+          <div className="bg-white rounded-3xl w-full max-w-7xl h-[92vh] p-6 relative">
+            <button
+              onClick={() => setIsFullscreen(false)}
+              className="absolute top-4 right-4"
+            >
+              <X />
+            </button>
+
+            <MainChart />
           </div>
         </div>
       )}
