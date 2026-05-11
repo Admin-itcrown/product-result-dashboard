@@ -83,46 +83,79 @@ const Glaze1 = () => {
     {
       title: "Total",
       value: loading ? "Loading..." : statsSumNumber.toLocaleString(),
+      valuePercent: loading || statsSumNumber === 0 ? "" : "100%",
       change: loading ? "" : statsSumMoved.toLocaleString(),
+      changePercent:
+        loading || statsSumNumber === 0
+          ? ""
+          : `${((statsSumMoved / statsSumNumber) * 100).toFixed(2)}%`,
       changeType: "positive" as const,
       scrap: loading ? "" : statsSumScrap.toLocaleString(),
+      scrapPercent:
+        loading || statsSumNumber === 0
+          ? ""
+          : `${((statsSumScrap / statsSumNumber) * 100).toFixed(2)}%`,
       scrapType: "neutral" as const,
       icon: Factory,
-      titleClassName: "text-black text-xl",
-      valueClassName: "text-blue-700 text-3xl",
+      titleClassName: "text-blue-800 text-xl",
+      valueClassName: "text-slate-700 text-3xl",
     },
 
     {
       title: "SOLID",
       value: loading ? "Loading..." : solideSum.toLocaleString(),
       change: loading ? "" : solidMoved.toLocaleString(),
+      changePercent:
+        loading || solideSum === 0
+          ? ""
+          : `${((solidMoved / solideSum) * 100).toFixed(2)}%`,
       changeType: "positive" as const,
       scrap: loading ? "" : solidScrap.toLocaleString(),
+      scrapPercent:
+        loading || solideSum === 0
+          ? ""
+          : `${((solidScrap / solideSum) * 100).toFixed(2)}%`,
       scrapType: "neutral" as const,
       icon: Coffee,
-      titleClassName: "text-black",
+      titleClassName: "text-blue-600",
     },
 
     {
       title: "TWOTON",
       value: loading ? "Loading..." : treetonSum.toLocaleString(),
       change: loading ? "" : twotonMoved.toLocaleString(),
+      changePercent:
+        loading || treetonSum === 0
+          ? ""
+          : `${((twotonMoved / treetonSum) * 100).toFixed(2)}%`,
       changeType: "positive" as const,
       scrap: loading ? "" : treetonScrap.toLocaleString(),
+      scrapPercent:
+        loading || treetonSum === 0
+          ? ""
+          : `${((treetonScrap / treetonSum) * 100).toFixed(2)}%`,
       scrapType: "neutral" as const,
       icon: GlassWater,
-      titleClassName: "text-black",
+      titleClassName: "text-blue-600",
     },
 
     {
       title: "Others",
       value: loading ? "Loading..." : othersSum.toLocaleString(),
       change: loading ? "" : othersMoved.toLocaleString(),
+      changePercent:
+        loading || othersSum === 0
+          ? ""
+          : `${((othersMoved / othersSum) * 100).toFixed(2)}%`,
       changeType: "positive" as const,
       scrap: loading ? "" : othersScrap.toLocaleString(),
+      scrapPercent:
+        loading || othersSum === 0
+          ? ""
+          : `${((othersScrap / othersSum) * 100).toFixed(2)}%`,
       scrapType: "neutral" as const,
       icon: Boxes,
-      titleClassName: "text-black",
+      titleClassName: "text-blue-600",
     },
   ];
 

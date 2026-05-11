@@ -133,6 +133,7 @@ interface StatCardFormmProps {
   value: string;
   change?: string;
   scrap?: string;
+  scrapPercent?: string;
 }
 
 export function StatCardFormm({
@@ -140,6 +141,7 @@ export function StatCardFormm({
   value,
   change,
   scrap,
+  scrapPercent,
 }: StatCardFormmProps) {
   return (
     <div className="rounded-2xl border bg-card p-6 shadow-sm hover:shadow-md transition">
@@ -158,7 +160,10 @@ export function StatCardFormm({
         {scrap && (
           <div className="flex items-center gap-1 mt-1 text-red-600 text-sm font-medium">
             <X className="h-4 w-4" />
-            <span>Scrap {scrap}</span>
+            <span>
+              Scrap {scrap}
+              {scrapPercent ? ` (${scrapPercent})` : ""}
+            </span>
           </div>
         )}
       </div>

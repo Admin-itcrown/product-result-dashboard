@@ -175,9 +175,12 @@ export function useFetchGlazeStats(
 interface StatCardGlazeProps {
   title: string;
   value: string;
+  valuePercent?: string;
   change?: string;
+  changePercent?: string;
   changeType: "positive" | "negative" | "neutral";
   scrap?: string;
+  scrapPercent?: string;
   scrapType : "positive" | "negative" | "neutral";
   icon: LucideIcon;
   delay?: number;
@@ -189,9 +192,12 @@ interface StatCardGlazeProps {
 export function StatCardGlaze({
   title,
   value,
+  valuePercent,
   change,
+  changePercent,
   changeType,
   scrap,
+  scrapPercent,
   scrapType,
   icon: Icon,
   delay = 0,
@@ -202,12 +208,12 @@ export function StatCardGlaze({
   return (
     <div
       className={cn(
-        "rounded-xl border bg-card p-6 shadow-sm transition-all duration-300",
+        "relative rounded-xl border bg-card p-6 shadow-sm transition-all duration-300",
         className
       )}
       style={{ animationDelay: `${delay}ms` }}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         <div className="flex flex-col">
           <p
             className={cn(
@@ -225,6 +231,7 @@ export function StatCardGlaze({
             )}
           >
             {value}
+          
           </p>
 
           {change !== undefined && (
@@ -237,23 +244,31 @@ export function StatCardGlaze({
               )}
             >
               <CheckCircle2 className="h-4 w-4" />
-              <span>ยอด A {change}</span>
+              <span>
+                ยอด A {change}
+                {changePercent && (
+                  <span className="text-muted-foreground"> ({changePercent})</span>
+                )}
+              </span>
             </div>
           )}
 
           {scrap !== undefined && (
             <div className="flex items-center gap-1 text-sm mt-1 font-medium text-red-600">
               <X className="h-4 w-4" />
-              <span>Scrap {scrap}</span>
+              <span>
+                Scrap {scrap}
+                {scrapPercent && (
+                  <span className="text-muted-foreground"> ({scrapPercent})</span>
+                )}
+              </span>
             </div>
           )}
-          
-          
         </div>
+      </div>
 
-        <div className="h-12 w-12 rounded-lg bg-accent flex items-center justify-center">
-          <Icon className="h-6 w-6 text-accent-foreground" />
-        </div>
+      <div className="absolute right-4 top-4 h-12 w-12 rounded-lg bg-accent flex items-center justify-center">
+        <Icon className="h-6 w-6 text-accent-foreground" />
       </div>
     </div>
   );

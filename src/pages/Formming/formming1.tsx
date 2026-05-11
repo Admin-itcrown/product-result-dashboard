@@ -54,25 +54,33 @@ const Formming1 = () => {
       value: loading ? "Loading..." : totalProc.toLocaleString(),
       change: loading ? "" : totalMoved.toLocaleString(),
       scrap: loading ? "" : totalScrap.toLocaleString(),
+      scrapPercent:
+        loading || totalProc === 0
+          ? ""
+          : `${((totalScrap / totalProc) * 100).toFixed(2)}%`,
       icon: Factory,
     },
 
-    ...lineSummary.map((item: any) => ({
-      title: item.LineCode,
-      value: loading
-        ? "Loading..."
-        : Number(item.TotalQtyProc ?? 0).toLocaleString(),
+    ...lineSummary.map((item: any) => {
+      const proc = Number(item.TotalQtyProc ?? 0);
+      const scrapValue = Number(item.TotalQtyScrap ?? 0);
 
-      change: loading
-        ? ""
-        : Number(item.TotalQtyMoved ?? 0).toLocaleString(),
-
-      scrap: loading
-        ? ""
-        : Number(item.TotalQtyScrap ?? 0).toLocaleString(),
-
-      icon: Boxes,
-    })),
+      return {
+        title: item.LineCode,
+        value: loading
+          ? "Loading..."
+          : proc.toLocaleString(),
+        change: loading
+          ? ""
+          : Number(item.TotalQtyMoved ?? 0).toLocaleString(),
+        scrap: loading ? "" : scrapValue.toLocaleString(),
+        scrapPercent:
+          loading || proc === 0
+            ? ""
+            : `${((scrapValue / proc) * 100).toFixed(2)}%`,
+        icon: Boxes,
+      };
+    }),
   ];
 
   /* ===============================
