@@ -59,7 +59,7 @@ export function ProductChartGlaze() {
         SUM(CASE WHEN Line = '42TWOTON' THEN [QtyMoved] ELSE 0 END) AS TWOTON,
         SUM(CASE WHEN Line NOT IN ('42SOLID','42TWOTON') THEN [QtyMoved] ELSE 0 END) AS Others
       FROM glaze_trans
-      WHERE ${whereDate}
+      WHERE ${whereDate} AND [OP] = 10
       GROUP BY ${groupBy}, ${label}
       ORDER BY ${groupBy}
     `;

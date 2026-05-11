@@ -46,7 +46,7 @@ export function useFetchGlazeStats(
     SUM([QtyScrap]) AS TotalQtyScrap,
     SUM([QtyMoved]) AS TotalQtyMoved
   FROM [Db_glaze].[dbo].[glaze_trans]
-  WHERE [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
+  WHERE [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}' AND [OP] = 10
   GROUP BY [Line]
   ORDER BY [Line]
 `;
@@ -59,7 +59,7 @@ export function useFetchGlazeStats(
             SUM([QtyMoved]) AS TotalQtyMoved
           FROM [Db_glaze].[dbo].[glaze_trans]
           WHERE [Line] LIKE '42SOLID'
-          AND [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
+          AND [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'AND [OP] = 10
           ORDER BY [Line]
         `;
 
@@ -71,7 +71,7 @@ export function useFetchGlazeStats(
             SUM([QtyMoved]) AS TotalQtyMoved
           FROM [Db_glaze].[dbo].[glaze_trans]
           WHERE [Line] LIKE '42TWOTON'
-          AND [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
+          AND [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'AND [OP] = 10
           ORDER BY [Line]
         `;
 
@@ -83,7 +83,7 @@ export function useFetchGlazeStats(
           FROM [Db_glaze].[dbo].[glaze_trans]
           WHERE [Line] NOT LIKE '42SOLID'
           AND [Line] NOT LIKE '42TWOTON'
-          AND [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
+          AND [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'AND [OP] = 10
           ORDER BY [Line]
         `;
         // Fetch all queries in parallel
