@@ -51,7 +51,7 @@ export function ProductChartFormming() {
 
   const fetchData = async () => {
     const query = `
-      SELECT TOP 3
+      SELECT TOP 5
         [Description2] AS Customer,
         SUM([QtyMoved]) AS TotalA
       FROM [Db_Formming].[dbo].[Formm_trans]
