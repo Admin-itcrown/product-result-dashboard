@@ -17,7 +17,6 @@ export function ProductTablefinishing({
   const [rows, setRows] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // 🔥 pagination state
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -29,6 +28,7 @@ export function ProductTablefinishing({
     setLoading(true);
     setError(null);
     setRows([]);
+    setPage(1);
 
     try {
       const envApi = (import.meta as any)?.env?.VITE_API_URL;
@@ -40,17 +40,17 @@ export function ProductTablefinishing({
           : "http://localhost:3001");
 
       const today = new Date();
-
       const formattedStart = format(startDate || today, "yyyy-MM-dd");
       const formattedEnd = format(endDate || today, "yyyy-MM-dd");
 
-      // ❗ ไม่ใช้ TOP 10 แล้ว
       const query = `
         SELECT
           [Line],
           [Item],
           [Clay],
+          [Description],
           SUM([QtyProc]) AS TotalQtyProc,
+          SUM([QtyMoved]) AS TotalQtyMoved,
           SUM([QtyScrap]) AS TotalQtyScrap,
           CAST(
             CAST(SUM([QtyScrap]) AS FLOAT)
@@ -60,35 +60,31 @@ export function ProductTablefinishing({
         FROM [Db_Formming].[dbo].[Formm_trans]
         WHERE [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
           AND [OP] = 20
-        GROUP BY [Line], [Item], [Clay]
-        ORDER BY 
-          CAST(
-            CAST(SUM([QtyScrap]) AS FLOAT)
-            / NULLIF(SUM([QtyProc]), 0) * 100
-            AS DECIMAL(5,2)
-          ) DESC
+        GROUP BY [Line], [Item], [Clay], [Description]
+        HAVING
+          SUM([QtyProc]) > 0
+          AND SUM([QtyScrap]) > 0
+        ORDER BY ScrapPercent DESC
       `;
 
       const res = await fetch(`${apiBase}/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query,
-          db: dbProfile,
-        }),
+        body: JSON.stringify({ query, db: dbProfile }),
       });
 
       const data = await res.json();
 
       if (!res.ok) throw new Error(data?.error || "Query failed");
 
-      const sorted = (data.recordset || []).sort(
-        (a: any, b: any) =>
-          Number(b.ScrapPercent || 0) - Number(a.ScrapPercent || 0)
-      );
+      const filtered = (data.recordset || [])
+        .filter((r: any) => Number(r.ScrapPercent || 0) > 0)
+        .sort(
+          (a: any, b: any) =>
+            Number(b.ScrapPercent || 0) - Number(a.ScrapPercent || 0)
+        );
 
-      setRows(sorted);
-      setPage(1); // reset page
+      setRows(filtered);
     } catch (err: any) {
       setError(err.message || String(err));
     } finally {
@@ -96,7 +92,6 @@ export function ProductTablefinishing({
     }
   }
 
-  // 🔥 pagination logic
   const totalPages = Math.ceil(rows.length / pageSize);
 
   const pagedRows = rows.slice(
@@ -104,28 +99,21 @@ export function ProductTablefinishing({
     page * pageSize
   );
 
-  const nextPage = () => {
-    if (page < totalPages) setPage(page + 1);
-  };
-
-  const prevPage = () => {
-    if (page > 1) setPage(page - 1);
-  };
-
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
-      {/* Header */}
+
+      {/* HEADER */}
       <div className="px-6 py-5 bg-gradient-to-r from-slate-900 to-slate-800">
         <h3 className="text-xl font-bold text-white">
-          Scrap Analysis
+          Scrap Analysis Dashboard
         </h3>
         <p className="text-sm text-slate-300 mt-1">
-          เรียงตามเปอร์เซ็นต์ Scrap
+          Line / Item / Clay / Description / Production
         </p>
       </div>
 
-      {/* Content */}
       <div className="p-5">
+
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
             {error}
@@ -136,16 +124,14 @@ export function ProductTablefinishing({
           <div className="flex justify-center py-14">
             <div className="text-center">
               <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
-              <div className="text-slate-600">
-                กำลังดึงข้อมูล...
-              </div>
+              <div className="text-slate-600">Loading...</div>
             </div>
           </div>
         )}
 
         {!loading && pagedRows.length === 0 && !error && (
           <div className="text-center py-14 text-slate-500">
-            ไม่มีข้อมูล
+            No Data
           </div>
         )}
 
@@ -153,28 +139,42 @@ export function ProductTablefinishing({
           <>
             <ScrollArea className="rounded-xl border border-slate-200">
               <table className="w-full">
+
                 <thead>
                   <tr className="bg-slate-100 border-b">
+
                     <th className="px-4 py-3 text-left text-xs font-bold">#</th>
                     <th className="px-4 py-3 text-left text-xs font-bold">Line</th>
                     <th className="px-4 py-3 text-left text-xs font-bold">Item</th>
+
+                    {/* 🔥 Clay กลับมาแล้ว */}
                     <th className="px-4 py-3 text-left text-xs font-bold">Clay</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold">Proc</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-rose-700">
-                      Scrap
+
+                    <th className="px-4 py-3 text-left text-xs font-bold">Description</th>
+
+                    <th className="px-4 py-3 text-right text-xs font-bold text-blue-600">
+                      Proc
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-rose-700">
+
+                    <th className="px-4 py-3 text-right text-xs font-bold text-green-600">
+                      Moved
+                    </th>
+
+                    <th className="px-4 py-3 text-right text-xs font-bold text-rose-600">
+                      Scrap Qty
+                    </th>
+
+                    <th className="px-4 py-3 text-right text-xs font-bold text-rose-600">
                       Scrap %
                     </th>
+
                   </tr>
                 </thead>
 
                 <tbody>
                   {pagedRows.map((row, idx) => (
-                    <tr
-                      key={idx}
-                      className="border-b hover:bg-slate-50 transition"
-                    >
+                    <tr key={idx} className="border-b hover:bg-slate-50 transition">
+
                       <td className="px-4 py-3 font-bold">
                         {(page - 1) * pageSize + idx + 1}
                       </td>
@@ -183,55 +183,78 @@ export function ProductTablefinishing({
                         {row.Line ? row.Line.slice(2, 5) : "-"}
                       </td>
 
-                      <td className="px-4 py-3">{row.Item || "-"}</td>
+                      <td className="px-4 py-3">
+                        {row.Item || "-"}
+                      </td>
 
-                      <td className="px-4 py-3 text-slate-600">
+                      {/* Clay */}
+                      <td className="px-4 py-3 text-slate-700">
                         {row.Clay || "-"}
                       </td>
 
-                      <td className="px-4 py-3 text-right">
+                      {/* Description */}
+                      <td className="px-4 py-3 text-slate-600 text-sm">
+                        {row.Description || "-"}
+                      </td>
+
+                      {/* Proc */}
+                      <td className="px-4 py-3 text-right text-blue-600 font-medium">
                         {Number(row.TotalQtyProc || 0).toLocaleString()}
                       </td>
 
-                      <td className="px-4 py-3 text-right font-bold text-rose-600">
+                      {/* Moved */}
+                      <td className="px-4 py-3 text-right text-green-600 font-medium">
+                        {Number(row.TotalQtyMoved || 0).toLocaleString()}
+                      </td>
+
+                      {/* Scrap Qty */}
+                      <td className="px-4 py-3 text-right text-rose-600 font-bold">
                         {Number(row.TotalQtyScrap || 0).toLocaleString()}
                       </td>
 
+                      {/* Scrap % */}
                       <td className="px-4 py-3 text-right">
-                        <span className="px-3 py-1 rounded-full bg-rose-50 text-rose-700 font-bold">
+                        <span className="inline-flex px-3 py-1 rounded-full bg-rose-50 text-rose-700 font-bold">
                           {row.ScrapPercent || 0}%
                         </span>
                       </td>
+
                     </tr>
                   ))}
                 </tbody>
+
               </table>
             </ScrollArea>
 
-            {/* 🔥 Pagination Controls */}
+            {/* Pagination */}
             <div className="flex items-center justify-between mt-4">
+
               <div className="text-sm text-slate-500">
-                Page {page} of {totalPages || 1}
+                Page {page} / {totalPages || 1}
               </div>
 
               <div className="flex gap-2">
+
                 <button
-                  onClick={prevPage}
+                  onClick={() => setPage((p) => Math.max(p - 1, 1))}
                   disabled={page === 1}
-                  className="px-4 py-2 rounded-lg border bg-white disabled:opacity-40"
+                  className="px-4 py-2 border rounded-lg disabled:opacity-40"
                 >
                   Prev
                 </button>
 
                 <button
-                  onClick={nextPage}
+                  onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
                   disabled={page === totalPages}
-                  className="px-4 py-2 rounded-lg border bg-white disabled:opacity-40"
+                  className="px-4 py-2 border rounded-lg disabled:opacity-40"
                 >
                   Next
                 </button>
+
               </div>
+
             </div>
+
           </>
         )}
       </div>
