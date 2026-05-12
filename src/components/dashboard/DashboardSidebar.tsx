@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -74,16 +74,28 @@ const menuItems: MenuItem[] = [
 
 export function DashboardSidebar() {
   const location = useLocation();
-
-  // ❗ FIX: ไม่ควรมี "Products" (ไม่มีอยู่จริง)
   const [openMenus, setOpenMenus] = useState<string[]>([]);
 
-  const toggleMenu = (label: string) => {
-    setOpenMenus((prev) =>
-      prev.includes(label)
-        ? prev.filter((item) => item !== label)
-        : [...prev, label]
+  // Auto-expand parent menu when navigating to a submenu item
+  useEffect(() => {
+    const activeParentMenu = menuItems.find((menu) =>
+      menu.subItems?.some((sub) => location.pathname === sub.path)
     );
+
+    if (activeParentMenu) {
+      setOpenMenus([activeParentMenu.label]);
+    } else {
+      setOpenMenus([]);
+    }
+  }, [location.pathname]);
+
+  const toggleMenu = (label: string) => {
+    // Toggle: if already open, close it; otherwise close all and open this one
+    if (openMenus.includes(label)) {
+      setOpenMenus([]);
+    } else {
+      setOpenMenus([label]);
+    }
   };
 
   const isActive = (path?: string) =>
