@@ -98,7 +98,7 @@ export function CategoryChartFormming({
 
         if (startStr && endStr) {
           query += `
-            WHERE [Date] BETWEEN '${startStr}' AND '${endStr}'
+            WHERE [Date] BETWEEN '${startStr}' AND '${endStr}'AND [OP] = 10
           `;
         }
 

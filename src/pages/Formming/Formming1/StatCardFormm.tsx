@@ -45,7 +45,7 @@ export function useFetchFormmingStats(
             SUM([QtyMoved]) AS TotalQtyMoved,
             SUM([QtyScrap]) AS TotalQtyScrap
           FROM [Db_Formming].[dbo].[Formm_trans]
-          WHERE [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
+          WHERE [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}' AND [OP] = 10
           GROUP BY [Line]
           ORDER BY [Line]
         `;
@@ -57,7 +57,7 @@ export function useFetchFormmingStats(
             SUM([QtyMoved]) AS TotalQtyMoved,
             SUM([QtyScrap]) AS TotalQtyScrap
           FROM [Db_Formming].[dbo].[Formm_trans]
-          WHERE [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
+          WHERE [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}' AND [OP] = 10
           GROUP BY SUBSTRING([Line],3,3)
           ORDER BY LineCode
         `;

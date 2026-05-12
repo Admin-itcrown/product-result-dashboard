@@ -21,7 +21,11 @@ import SortColour from "./pages/Whiteware/SortColour";
 import OverAllSort from "./pages/Whiteware/OverAllSort";
 import NotFound from "./pages/NotFound";
 import Glaze1 from "./pages/Glaze/glaze1";
-import Formming from "./pages/Formming/formming1";
+import Formming from "./pages/Formming/Formming1/formming1";
+
+import Sortingbis from "./pages/Formming/SortingBis/sortingbis";
+import Finishing from "./pages/Formming/Finishing/finishing";
+import BisqueFiring from "./pages/Formming/Bisque Firing/bisquefiring";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +59,12 @@ const router = createBrowserRouter(
         <Route path="/glaze1" element={<Glaze1 />} />
         <Route path="/kilnp1" element={<Kilnp1 />} />
         <Route path="/formming1" element={<Formming />} />
+        <Route path="/bisquefiring" element={<BisqueFiring />} />
+        <Route path="/finishing" element={<Finishing />} />
+        <Route path="/sortingbis" element={<Sortingbis />} />
+
+
+
 
         <Route path="/whitewarep1" element={<Whitewarep1 />} />
         <Route path="/sortdetails" element={<Sortdetails />} />

@@ -43,7 +43,12 @@ const menuItems: MenuItem[] = [
   {
     icon: Boxes,
     label: "Formming",
-    subItems: [{ label: "Formming", path: "/formming1" }]
+    subItems: [
+      { label: "Formming", path: "/formming1" },
+      { label: "Finishing", path: "/finishing" },
+      { label: "Bisque Firing", path: "/bisquefiring" },
+      { label: "Sorting Bisque", path: "/sortingbis" }
+    ]
   },
 
   {
