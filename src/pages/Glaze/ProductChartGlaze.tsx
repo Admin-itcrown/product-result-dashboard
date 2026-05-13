@@ -166,7 +166,15 @@ export function ProductChartGlaze() {
 
   const ChartBox = () => (
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={data}>
+      <AreaChart
+        data={data}
+        margin={{
+          top: 10,
+          right: 20,
+          left: 55,
+          bottom: 10,
+        }}
+      >
         <defs>
           <linearGradient
             id="solidGrad"
