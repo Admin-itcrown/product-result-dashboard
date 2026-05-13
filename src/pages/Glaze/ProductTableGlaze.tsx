@@ -144,7 +144,7 @@ export function ProductTableGlaze({
                   <th className="p-3">Glaze</th>
 
                   <th className="p-3 text-right text-blue-600">Proc</th>
-                  <th className="p-3 text-right text-green-600">A</th>
+                  <th className="p-3 text-right text-green-600">Moved</th>
                   <th className="p-3 text-right text-rose-600">Scrap</th>
                   <th className="p-3 text-right text-rose-600">Scrap%</th>
                 </tr>
