@@ -1,22 +1,18 @@
 import React from "react";
-import {
-  Coffee,
-  Calendar,
-  GlassWater,
-  Factory,
-  Boxes,
-} from "lucide-react";
+import { Factory, Boxes, Calendar,GlassWater,Coffee , MoreHorizontal} from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 
-import { StatCardGlaze, useFetchGlazeStats } from "./StatCardGlaze";
+import { useFetchGlazeStats } from "./StatCardGlaze";
+import { StatCardGlaze } from "./StatCardGlaze";
+import { ProductChartGlaze } from "./ProductChartGlaze";
 import { CategoryChartGlaze } from "./CategoryChartGlaze";
+import { ProductTableGlaze } from "./ProductTableGlaze";
+
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { ProductTableGlaze } from "./ProductTableGlaze";
-import { ProductChartGlaze } from "./ProductChartGlaze";
 
 const Glaze1 = () => {
   const [startDate, setStartDate] = React.useState<Date | undefined>(new Date());
@@ -65,33 +61,26 @@ const Glaze1 = () => {
     }
   });
 
-  /* =========================
-     CARD BUILDER
-  ========================= */
   const card = (title: string, icon: any, d: any) => ({
     title,
     icon,
-
-    value: loading ? "..." : d.p.toLocaleString(),
+    value: loading ? "Loading..." : d.p.toLocaleString(),
     scrap: loading ? "" : d.s.toLocaleString(),
     change: loading ? "" : d.m.toLocaleString(),
-
     valuePercent: "",
-    changePercent: d.p ? ((d.m / d.p) * 100).toFixed(1) + "%" : "",
-    scrapPercent: d.p ? ((d.s / d.p) * 100).toFixed(1) + "%" : "",
-
+    changePercent: d.p ? ((d.m / d.p) * 100).toFixed(2) + "%" : "",
+    scrapPercent: d.p ? ((d.s / d.p) * 100).toFixed(2) + "%" : "",
     changeType: "positive" as const,
     scrapType: "neutral" as const,
-
     titleClassName: "text-slate-600",
     valueClassName: "text-slate-900 text-2xl font-bold",
   });
 
   const stats = [
     card("TOTAL", Factory, { p: totalProc, s: totalScrap, m: totalMoved }),
-    card("SOLID", Coffee, solid),
-    card("TWOTON", GlassWater, twoton),
-    card("OTHERS", Boxes, others),
+    card("SOLID", GlassWater, solid),
+    card("TWOTONE", Coffee, twoton),
+    card("OTHERS", MoreHorizontal, others),
   ];
 
   return (
@@ -113,9 +102,7 @@ const Glaze1 = () => {
             </p>
           </div>
 
-          {/* =========================
-              DATE FILTER (FINISHING STYLE)
-          ========================= */}
+          {/* DATE FILTER (ORIGINAL STYLE) */}
           <div className="mb-6 flex gap-10 items-center flex-wrap">
 
             {/* START */}
@@ -151,7 +138,6 @@ const Glaze1 = () => {
                     captionLayout="dropdown"
                     fromYear={2020}
                     toYear={2035}
-                    showOutsideDays
                     selected={startDate}
                     onSelect={(date) => {
                       setStartDate(date);
@@ -195,7 +181,6 @@ const Glaze1 = () => {
                     captionLayout="dropdown"
                     fromYear={2020}
                     toYear={2035}
-                    showOutsideDays
                     selected={endDate}
                     onSelect={(date) => {
                       setEndDate(date);
@@ -210,36 +195,24 @@ const Glaze1 = () => {
           {/* CARDS */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {stats.map((s, i) => (
-              <div
-                key={s.title}
-                className="hover:scale-[1.02] transition-transform duration-200"
-              >
-                <StatCardGlaze {...s} />
-              </div>
+              <StatCardGlaze key={i} {...s} />
             ))}
           </div>
 
           {/* CHARTS */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm p-4">
+            <div className="lg:col-span-2">
               <ProductChartGlaze />
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm p-4">
-              <CategoryChartGlaze
-                startDate={startDate}
-                endDate={endDate}
-              />
-            </div>
+            <CategoryChartGlaze startDate={startDate} endDate={endDate} />
           </div>
 
           {/* TABLE */}
-          <div className="bg-white rounded-2xl shadow-sm p-4">
-            <ProductTableGlaze
-              startDate={startDate}
-              endDate={endDate}
-            />
-          </div>
+          <ProductTableGlaze
+            startDate={startDate}
+            endDate={endDate}
+          />
 
         </main>
       </div>

@@ -255,7 +255,10 @@ const Formming1 = () => {
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div className="lg:col-span-2">
-              <ProductChartFormming />
+              <ProductChartFormming
+                startDate={startDate}
+                endDate={endDate}
+              />
             </div>
 
             <CategoryChartFormming
@@ -265,7 +268,10 @@ const Formming1 = () => {
           </div>
 
           {/* Table */}
-          <ProductTableFormm />
+          <ProductTableFormm
+            startDate={startDate}
+            endDate={endDate}
+          />
 
         </main>
       </div>

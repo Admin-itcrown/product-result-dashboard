@@ -63,7 +63,7 @@ export function useFetchGlazeStats(
           ORDER BY [Line]
         `;
 
-        // Query for TWOTON
+        // Query for TWOTONE
         const twotonQuery = `
           SELECT 
             SUM([QtyProc]) AS TotalQtyProc,

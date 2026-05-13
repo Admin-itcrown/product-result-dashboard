@@ -84,7 +84,7 @@ export function ProductChartfinishing({ startDate, endDate }: any) {
       <BarChart
         data={data}
         key={isFullscreen ? "fs" : "normal"}
-        margin={{ top: 20, right: 30, left: 80, bottom: 40 }}
+        margin={{ top: 10, right: 20, left: 60, bottom: 20 }}
       >
 
         <CartesianGrid strokeDasharray="3 3" opacity={0.4} />
@@ -185,7 +185,7 @@ export function ProductChartfinishing({ startDate, endDate }: any) {
         </div>
 
         {/* CHART */}
-        <div className="h-[520px]">
+        <div className="h-[350px]">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               Loading...

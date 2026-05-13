@@ -80,7 +80,7 @@ export function ProductChartGlaze() {
         raw.map((row: any) => ({
           name: row.Period,
           SOLID: Number(row.SOLID || 0),
-          TWOTON: Number(row.TWOTON || 0),
+          TWOTONE: Number(row.TWOTON || 0),
           Others: Number(row.Others || 0),
         }))
       );
@@ -94,7 +94,7 @@ export function ProductChartGlaze() {
 
   const COLORS = {
     SOLID: { stroke: "#1e3a8a", fill: "#3b82f6" },
-    TWOTON: { stroke: "#c2410c", fill: "#fb923c" },
+    TWOTONE: { stroke: "#c2410c", fill: "#fb923c" },
     Others: { stroke: "#166534", fill: "#4ade80" },
   };
 
@@ -107,7 +107,7 @@ export function ProductChartGlaze() {
             <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
           </linearGradient>
 
-          <linearGradient id="twotonGrad" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id="twotoneGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="#fb923c" stopOpacity={0.6} />
             <stop offset="95%" stopColor="#fb923c" stopOpacity={0.05} />
           </linearGradient>
@@ -142,9 +142,9 @@ export function ProductChartGlaze() {
 
         <Area
           type="monotone"
-          dataKey="TWOTON"
-          stroke={COLORS.TWOTON.stroke}
-          fill="url(#twotonGrad)"
+          dataKey="TWOTONE"
+          stroke={COLORS.TWOTONE.stroke}
+          fill="url(#twotoneGrad)"
           strokeWidth={2.5}
         />
 
@@ -177,7 +177,7 @@ export function ProductChartGlaze() {
 
         <div className="flex justify-between items-center mb-5 pr-10">
           <h3 className="text-xl font-semibold text-gray-800">
-            Product Performance Glaze
+            Product Complete Performance Glaze
           </h3>
 
           <div className="flex gap-3">
