@@ -350,7 +350,10 @@ const Formming1 = () => {
 
                           <h2 className="text-2xl font-bold text-blue-700 leading-tight">
                             {
-                              item.GroupName
+                              item.GroupName?.replace(
+                                /^[0-9-]+\s*/,
+                                ""
+                              )
                             }
                           </h2>
 
