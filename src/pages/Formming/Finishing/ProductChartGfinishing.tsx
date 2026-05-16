@@ -1,219 +1,293 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ResponsiveContainer,
   BarChart,
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   Legend,
+  CartesianGrid,
 } from "recharts";
+import { Trophy, Maximize2, X } from "lucide-react";
+import { format } from "date-fns";
 
-import {
-  Maximize2,
-  X,
-  Factory,
-  PackageCheck,
-  PackageX,
-  Boxes,
-} from "lucide-react";
+interface Props {
+  startDate?: Date;
+  endDate?: Date;
+}
 
-import { useFetchFinishingStats } from "./StatCardfinishing";
+/* COLORS */
+const COLORS = {
+  proc: "#3B82F6",
+  moved: "#22C55E",
+  scrap: "#F43F5E",
+};
 
-export function ProductChartfinishing({ startDate, endDate }: any) {
+/* GROUP MAP */
+const GROUP_NAME_MAP: Record<string, string> = {
+  "101-104": "MUG",
+  "105-106": "EMB/MUG",
+  "201-204": "PLATE",
+  "205": "EMB/PLATE",
+  "301-304": "BOWL",
+  "401-404": "ACC",
+  "501-504": "RAM",
+  "601-604": "ISO/STA",
+  "701-704": "HPC",
+  "801-804": "ISO/Non",
+};
 
-  const [monthData, setMonthData] = useState<any[]>([]);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+/* TOOLTIP */
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
 
-  const { statsData, totals, loading } =
-    useFetchFinishingStats(startDate, endDate);
+  const d = payload[0]?.payload;
 
-  /* =========================
-     SMOOTH GROUPING (MEMO)
-  ========================= */
-  const data = useMemo(() => {
-    if (!statsData) return [];
+  return (
+    <div className="bg-white/90 backdrop-blur border shadow-xl rounded-2xl p-3 text-xs">
+      <p className="font-semibold text-slate-700 mb-2">{label}</p>
 
-    const grouped: any = {};
-
-    statsData.forEach((row: any) => {
-      const key = row.Line?.substring(2, 5);
-
-      if (!grouped[key]) {
-        grouped[key] = {
-          name: key,
-          QtyProc: 0,
-          QtyMoved: 0,
-          QtyScrap: 0,
-        };
-      }
-
-      grouped[key].QtyProc += Number(row.TotalQtyProc || 0);
-      grouped[key].QtyMoved += Number(row.TotalQtyMoved || 0);
-      grouped[key].QtyScrap += Number(row.TotalQtyScrap || 0);
-    });
-
-    return Object.values(grouped);
-  }, [statsData]);
-
-  /* =========================
-     KPI %
-  ========================= */
-  const movedPct =
-    totals.totalQtyProc
-      ? (totals.totalQtyMoved / totals.totalQtyProc) * 100
-      : 0;
-
-  const scrapPct =
-    totals.totalQtyProc
-      ? (totals.totalQtyScrap / totals.totalQtyProc) * 100
-      : 0;
-
-  /* =========================
-     TOOLTIP (LIGHTWEIGHT)
-  ========================= */
-  const formatNumber = (v: any) =>
-    Number(v || 0).toLocaleString();
-
-  /* =========================
-     CHART (SMOOTH)
-  ========================= */
-  const Chart = () => (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart
-        data={data}
-        key={isFullscreen ? "fs" : "normal"}
-        margin={{ top: 10, right: 20, left: 60, bottom: 20 }}
-      >
-
-        <CartesianGrid strokeDasharray="3 3" opacity={0.4} />
-
-        <XAxis dataKey="name" />
-
-        <YAxis width={100} />
-
-        <Tooltip
-          formatter={(v) => formatNumber(v)}
-          animationDuration={200}
-        />
-
-        <Legend />
-
-        {/* SMOOTH BARS */}
-        <Bar
-          dataKey="QtyProc"
-          fill="#2563eb"
-          radius={[10, 10, 0, 0]}
-          isAnimationActive={true}
-          animationDuration={600}
-        />
-
-        <Bar
-          dataKey="QtyMoved"
-          fill="#22c55e"
-          radius={[10, 10, 0, 0]}
-          isAnimationActive={true}
-          animationDuration={600}
-        />
-
-        <Bar
-          dataKey="QtyScrap"
-          fill="#ef4444"
-          radius={[10, 10, 0, 0]}
-          isAnimationActive={true}
-          animationDuration={600}
-        />
-
-      </BarChart>
-    </ResponsiveContainer>
+      <div className="space-y-1">
+        <p className="text-blue-500">
+          Proc: {d.proc?.toLocaleString?.() || 0}
+        </p>
+        <p className="text-green-500">
+          Moved: {d.moved?.toLocaleString?.() || 0} ({d.movedPct}%)
+        </p>
+        <p className="text-rose-500">
+          Scrap: {d.scrap?.toLocaleString?.() || 0} ({d.scrapPct}%)
+        </p>
+      </div>
+    </div>
   );
+};
+
+export function ProductChartfinishing({ startDate, endDate }: Props) {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
+
+  const apiBase =
+    (import.meta as any)?.env?.VITE_API_URL ||
+    `${window.location.protocol}//${window.location.hostname}:3001`;
+
+  const formatDate = (d?: Date) =>
+    d ? format(d, "yyyy-MM-dd") : "";
+
+  useEffect(() => {
+    if (!startDate || !endDate) return;
+    fetchData();
+  }, [startDate, endDate]);
+
+  const fetchData = async () => {
+    const query = `
+      SELECT 
+        CASE 
+          WHEN itemgroup.code_value1 IN ('101','102','103','104') THEN '101-104'
+          WHEN itemgroup.code_value1 IN ('105','106') THEN '105-106'
+          WHEN itemgroup.code_value1 IN ('201','202','203','204') THEN '201-204'
+          WHEN itemgroup.code_value1 IN ('205') THEN '205'
+          WHEN itemgroup.code_value1 IN ('301','302','303','304') THEN '301-304'
+          WHEN itemgroup.code_value1 IN ('401','402','403','404') THEN '401-404'
+          WHEN itemgroup.code_value1 IN ('501','502','503','504') THEN '501-504'
+          WHEN itemgroup.code_value1 IN ('601','602','603','604') THEN '601-604'
+          WHEN itemgroup.code_value1 IN ('701','702','703','704') THEN '701-704'
+          WHEN itemgroup.code_value1 IN ('801','802','803','804') THEN '801-804'
+        END AS GroupCode,
+
+        SUM(Formm_trans.QtyProc) AS Ptotal,
+        SUM(Formm_trans.QtyMoved) AS sumA,
+        SUM(Formm_trans.QtyScrap) AS sumscrap
+
+      FROM Formm_trans
+      INNER JOIN pt_mstr 
+        ON Formm_trans.Item = pt_mstr.pt_part
+      INNER JOIN itemgroup 
+        ON pt_mstr.pt_group = itemgroup.code_value1
+
+      WHERE itemgroup.code_value1 IN (
+        '101','102','103','104','105','106',
+        '201','202','203','204','205',
+        '301','302','303','304',
+        '401','402','403','404',
+        '501','502','503','504',
+        '601','602','603','604',
+        '701','702','703','704',
+        '801','802','803','804'
+      )
+
+      AND [Date] BETWEEN '${formatDate(startDate)}'
+      AND '${formatDate(endDate)}'
+      AND [OP] = 20
+
+      GROUP BY 
+        CASE 
+          WHEN itemgroup.code_value1 IN ('101','102','103','104') THEN '101-104'
+          WHEN itemgroup.code_value1 IN ('105','106') THEN '105-106'
+          WHEN itemgroup.code_value1 IN ('201','202','203','204') THEN '201-204'
+          WHEN itemgroup.code_value1 IN ('205') THEN '205'
+          WHEN itemgroup.code_value1 IN ('301','302','303','304') THEN '301-304'
+          WHEN itemgroup.code_value1 IN ('401','402','403','404') THEN '401-404'
+          WHEN itemgroup.code_value1 IN ('501','502','503','504') THEN '501-504'
+          WHEN itemgroup.code_value1 IN ('601','602','603','604') THEN '601-604'
+          WHEN itemgroup.code_value1 IN ('701','702','703','704') THEN '701-704'
+          WHEN itemgroup.code_value1 IN ('801','802','803','804') THEN '801-804'
+        END
+    `;
+
+    try {
+      setLoading(true);
+
+      const res = await fetch(`${apiBase}/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, db: "formming" }),
+      });
+
+      const payload = await res.json();
+
+      const records =
+        payload?.recordset ||
+        payload?.data ||
+        payload?.result ||
+        [];
+
+      const chartData = records.map((x: any) => {
+        const label =
+          GROUP_NAME_MAP[x.GroupCode] || x.GroupCode || "UNKNOWN";
+
+        const proc = Number(x.Ptotal ?? 0);
+        const moved = Number(x.sumA ?? 0);
+        const scrap = Number(x.sumscrap ?? 0);
+
+        return {
+          name: label,
+          proc,
+          moved,
+          scrap,
+          movedPct: proc ? ((moved / proc) * 100).toFixed(1) : "0",
+          scrapPct: proc ? ((scrap / proc) * 100).toFixed(1) : "0",
+        };
+      });
+
+      setData(chartData);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const totalProc = data.reduce((s, i) => s + (i.proc || 0), 0);
+  const totalMoved = data.reduce((s, i) => s + (i.moved || 0), 0);
+  const totalScrap = data.reduce((s, i) => s + (i.scrap || 0), 0);
+
+  /* ✅ FIXED: show 25,000 instead of 25k */
+  const YAxisConfig = {
+    width: 80,
+    domain: ["dataMin", "dataMax"] as const,
+    tickFormatter: (v: number) => Number(v).toLocaleString(),
+  };
 
   return (
     <>
-      {/* CARD */}
-      <div className="bg-white rounded-3xl border shadow-xl p-6 relative">
-
-        <button
-          onClick={() => setIsFullscreen(true)}
-          className="absolute top-4 right-4 p-2 bg-white border rounded-xl shadow z-10"
-        >
-          <Maximize2 size={18} />
-        </button>
+      {/* MAIN CARD */}
+      <div className="bg-gradient-to-br from-white via-slate-50 to-slate-100 border rounded-3xl shadow-xl p-5 h-[620px] flex flex-col">
 
         {/* HEADER */}
-        <div className="mb-4 flex items-center gap-2">
-          <Factory className="text-blue-600" />
-          <h3 className="text-xl font-bold">
-            Finishing Production Analysis
-          </h3>
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-2">
+            <Trophy className="text-yellow-500" />
+            <h2 className="text-lg font-bold text-slate-700">
+              Finishing Group Analysis
+            </h2>
+          </div>
+
+          <button
+            onClick={() => setOpenModal(true)}
+            className="p-2 rounded-xl hover:bg-white shadow-sm transition"
+          >
+            <Maximize2 size={18} />
+          </button>
         </div>
 
         {/* KPI */}
-        <div className="grid grid-cols-3 gap-4 mb-4">
-
-          <div className="bg-blue-50 p-4 rounded-2xl">
-            <Boxes className="text-blue-600 mb-1" />
-            <div className="text-sm">QtyProc</div>
-            <div className="text-xl font-bold">
-              {formatNumber(totals.totalQtyProc)}
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          {[
+            { label: "Proc", value: totalProc, color: "blue" },
+            { label: "Moved", value: totalMoved, color: "green" },
+            { label: "Scrap", value: totalScrap, color: "rose" },
+          ].map((k, i) => (
+            <div key={i} className="bg-white border rounded-2xl p-3 shadow-sm">
+              <p className="text-xs text-slate-500">{k.label}</p>
+              <p className={`font-bold text-${k.color}-600`}>
+                {k.value.toLocaleString()}
+              </p>
             </div>
-          </div>
-
-          <div className="bg-green-50 p-4 rounded-2xl">
-            <PackageCheck className="text-green-600 mb-1" />
-            <div className="text-sm">QtyMoved</div>
-            <div className="text-xl font-bold">
-              {formatNumber(totals.totalQtyMoved)}
-            </div>
-            <div className="text-sm text-green-600">
-              {movedPct.toFixed(1)}%
-            </div>
-          </div>
-
-          <div className="bg-red-50 p-4 rounded-2xl">
-            <PackageX className="text-red-500 mb-1" />
-            <div className="text-sm">QtyScrap</div>
-            <div className="text-xl font-bold">
-              {formatNumber(totals.totalQtyScrap)}
-            </div>
-            <div className="text-sm text-red-500">
-              {scrapPct.toFixed(1)}%
-            </div>
-          </div>
-
+          ))}
         </div>
 
         {/* CHART */}
-        <div className="h-[350px]">
+        <div className="flex-1 bg-white border rounded-2xl p-3">
           {loading ? (
-            <div className="flex items-center justify-center h-full">
+            <div className="h-full flex items-center justify-center text-slate-400">
               Loading...
             </div>
           ) : (
-            <Chart />
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data} barCategoryGap={20}>
+                <CartesianGrid opacity={0.15} />
+
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 11 }}
+                  interval={0}
+                  height={50}
+                />
+
+                <YAxis {...YAxisConfig} />
+
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+
+                <Bar dataKey="proc" fill={COLORS.proc} barSize={18} />
+                <Bar dataKey="moved" fill={COLORS.moved} barSize={18} />
+                <Bar dataKey="scrap" fill={COLORS.scrap} barSize={18} />
+              </BarChart>
+            </ResponsiveContainer>
           )}
         </div>
-
       </div>
 
-      {/* FULLSCREEN (SMOOTH FIX) */}
-      {isFullscreen && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-
-          <div className="bg-white w-full h-[92vh] rounded-3xl relative overflow-hidden">
-
+      {/* MODAL */}
+      {openModal && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center"
+          onClick={() => setOpenModal(false)}
+        >
+          <div
+            className="bg-white w-[96vw] h-[96vh] rounded-3xl p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
-              onClick={() => setIsFullscreen(false)}
-              className="absolute top-4 right-4 p-3 bg-white rounded-xl shadow z-10"
+              className="absolute top-5 right-5 p-2 hover:bg-slate-100 rounded-xl"
+              onClick={() => setOpenModal(false)}
             >
-              <X size={26} />
+              <X />
             </button>
 
-            <div className="h-full p-6">
-              <Chart />
-            </div>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data} barCategoryGap={20}>
+                <CartesianGrid opacity={0.15} />
+                <XAxis dataKey="name" />
+                <YAxis {...YAxisConfig} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
 
+                <Bar dataKey="proc" fill={COLORS.proc} barSize={18} />
+                <Bar dataKey="moved" fill={COLORS.moved} barSize={18} />
+                <Bar dataKey="scrap" fill={COLORS.scrap} barSize={18} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       )}

@@ -1,114 +1,94 @@
-import React, { useState, useEffect } from "react";
-import { X, CheckCircle2 } from "lucide-react";
-import { format } from "date-fns";
+import React from "react";
 
 /* ================================
-   Hook: Fetch Finishing Stats
+   STAT CARD (NO ICON VERSION)
 ================================ */
+
+export function StatCardfinishing({
+  title,
+  value,
+  change,
+  scrap,
+  scrapPercent,
+}: any) {
+  return (
+    <div className="rounded-2xl border bg-white p-6 shadow-sm hover:shadow-md transition">
+
+      {/* TITLE */}
+      <p className="text-xl font-bold text-blue-700">
+        {title}
+      </p>
+
+      {/* VALUE */}
+      <p className="text-3xl font-bold mt-2 text-slate-800">
+        {value}
+      </p>
+
+      {/* MOVED */}
+      {change && (
+        <div className="text-green-600 mt-3 text-sm font-medium">
+          Moved {change}
+        </div>
+      )}
+
+      {/* SCRAP */}
+      {scrap && (
+        <div className="text-red-600 mt-1 text-sm font-medium">
+          Scrap {scrap} {scrapPercent ? `(${scrapPercent})` : ""}
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+/* ================================
+   FETCH: FORMING STATS
+================================ */
+
+import { useEffect, useState } from "react";
+import { format } from "date-fns";
+
 export function useFetchFinishingStats(
   startDate: Date | undefined,
   endDate: Date | undefined
 ) {
   const [statsData, setStatsData] = useState<any[]>([]);
-  const [lineSummary, setLineSummary] = useState<any[]>([]);
-  const [totals, setTotals] = useState({
-    totalQtyProc: 0,
-    totalQtyScrap: 0,
-    totalQtyMoved: 0,
-  });
-
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!startDate || !endDate) return;
 
     const fetchData = async () => {
-      const dbProfile = "finishing";
-      const envApi = (import.meta as any)?.env?.VITE_API_URL;
-
-      const apiBase =
-        envApi ||
-        (typeof window !== "undefined"
-          ? `${window.location.protocol}//${window.location.hostname}:3001`
-          : "http://localhost:3001");
-
-      setLoading(true);
-
       try {
-        const formattedStart = format(startDate, "yyyy-MM-dd");
-        const formattedEnd = format(endDate, "yyyy-MM-dd");
+        setLoading(true);
 
-        const mainQuery = `
+        const apiBase =
+          (import.meta as any)?.env?.VITE_API_URL ||
+          `${window.location.protocol}//${window.location.hostname}:3001`;
+
+        const sql = `
           SELECT 
-            [Line],
-            SUM([QtyProc]) AS TotalQtyProc,
-            SUM([QtyMoved]) AS TotalQtyMoved,
-            SUM([QtyScrap]) AS TotalQtyScrap
+            SUM(QtyProc) AS TotalQtyProc,
+            SUM(QtyMoved) AS TotalQtyMoved,
+            SUM(QtyScrap) AS TotalQtyScrap
           FROM [Db_Formming].[dbo].[Formm_trans]
-          WHERE [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}' AND [OP] = 20
-          GROUP BY [Line]
-          ORDER BY [Line]
+          WHERE [Date] BETWEEN '${format(startDate, "yyyy-MM-dd")}'
+          AND '${format(endDate, "yyyy-MM-dd")}'
+          AND [OP] = 20
         `;
 
-        const lineCodeQuery = `
-          SELECT 
-            SUBSTRING([Line],3,3) AS LineCode,
-            SUM([QtyProc])  AS TotalQtyProc,
-            SUM([QtyMoved]) AS TotalQtyMoved,
-            SUM([QtyScrap]) AS TotalQtyScrap
-          FROM [Db_Formming].[dbo].[Formm_trans]
-          WHERE [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}' AND [OP] = 20
-          GROUP BY SUBSTRING([Line],3,3)
-          ORDER BY LineCode
-        `;
-
-        const [mainResponse, lineResponse] = await Promise.all([
-          fetch(`${apiBase}/query`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: mainQuery, db: dbProfile }),
-          }),
-
-          fetch(`${apiBase}/query`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: lineCodeQuery, db: dbProfile }),
-          }),
-        ]);
-
-        const mainPayload = await mainResponse.json();
-        const linePayload = await lineResponse.json();
-
-        const records = mainPayload?.recordset || [];
-        const lineRecords = linePayload?.recordset || [];
-
-        setStatsData(records);
-        setLineSummary(lineRecords);
-
-        const totalQtyProc = records.reduce(
-          (sum: number, item: any) => sum + Number(item.TotalQtyProc ?? 0),
-          0
-        );
-
-        const totalQtyMoved = records.reduce(
-          (sum: number, item: any) => sum + Number(item.TotalQtyMoved ?? 0),
-          0
-        );
-
-        const totalQtyScrap = records.reduce(
-          (sum: number, item: any) => sum + Number(item.TotalQtyScrap ?? 0),
-          0
-        );
-
-        setTotals({
-          totalQtyProc,
-          totalQtyMoved,
-          totalQtyScrap,
+        const res = await fetch(`${apiBase}/query`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: sql, db: "formming" }),
         });
+
+        const json = await res.json();
+        setStatsData(json?.recordset || []);
       } catch (err) {
         console.error(err);
         setStatsData([]);
-        setLineSummary([]);
       } finally {
         setLoading(false);
       }
@@ -117,115 +97,95 @@ export function useFetchFinishingStats(
     fetchData();
   }, [startDate, endDate]);
 
-  return {
-    statsData,
-    lineSummary,
-    totals,
-    loading,
-  };
+  return { statsData, loading };
 }
 
 /* ================================
-   Stat Card
+   FETCH GROUP SUMMARY
 ================================ */
-interface StatCardFinishingProps {
-  title: string;
-  value: string;
-  change?: string;
-  aPercent?: string;
-  scrap?: string;
-  scrapPercent?: string;
-}
 
-export function StatCardFinishing({
-  title,
-  value,
-  change,
-  aPercent,
-  scrap,
-  scrapPercent,
-}: StatCardFinishingProps) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-sky-50 p-4 shadow-sm shadow-slate-200/40 transition duration-300 hover:-translate-y-0.5 hover:shadow-md">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
-          {title}
-        </p>
-        <p className="mt-3 text-3xl font-extrabold tracking-tight text-slate-950">
-          {value}
-        </p>
-      </div>
+export function useFetchGroupSummary(
+  startDate: Date | undefined,
+  endDate: Date | undefined
+) {
+  const [groupData, setGroupData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-      <div className="mt-4 space-y-2 text-sm font-medium">
-        {change && (
-          <div className="flex items-center gap-2 rounded-2xl bg-sky-50 px-3 py-2 text-sky-800 shadow-sm shadow-sky-100/80">
-            <CheckCircle2 className="h-4 w-4 text-sky-600" />
-            <span className="text-sm">
-              ยอด A {change}
-              {aPercent ? ` (${aPercent})` : ""}
-            </span>
-          </div>
-        )}
+  const GROUP_SQL = `
+    SELECT
+      CASE
+        WHEN itemgroup.code_value1 IN ('101','102','103','104') THEN '101-104'
+        WHEN itemgroup.code_value1 IN ('105','106') THEN '105-106'
+        WHEN itemgroup.code_value1 IN ('201','202','203','204') THEN '201-204'
+        WHEN itemgroup.code_value1 = '205' THEN '205'
+        WHEN itemgroup.code_value1 IN ('301','302','303','304') THEN '301-304'
+        WHEN itemgroup.code_value1 IN ('401','402','403','404') THEN '401-404'
+        WHEN itemgroup.code_value1 IN ('501','502','503','504') THEN '501-504'
+        WHEN itemgroup.code_value1 IN ('601','602','603','604') THEN '601-604'
+        WHEN itemgroup.code_value1 IN ('701','702','703','704') THEN '701-704'
+        WHEN itemgroup.code_value1 IN ('801','802','803','804') THEN '801-804'
+      END AS GroupCode,
 
-        {scrap !== undefined && scrap !== "" && (
-          <div className="flex items-center gap-2 rounded-2xl bg-rose-50 px-3 py-2 text-rose-800 shadow-sm shadow-rose-100/80">
-            <X className="h-4 w-4 text-rose-600" />
-            <span className="text-sm">
-              Scrap {scrap}
-              {scrapPercent ? ` (${scrapPercent})` : ""}
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+      SUM(Formm_trans.QtyProc) AS Ptotal,
+      SUM(Formm_trans.QtyMoved) AS sumA,
+      SUM(Formm_trans.QtyScrap) AS sumscrap
 
-/* ================================
-   LineCode Blocks
-================================ */
-export function LineCodeBlocks({ data }: { data: any[] }) {
-  return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-4 mt-5">
-      {data.map((item, index) => (
-        <div
-          key={index}
-          className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm shadow-slate-200/40 transition duration-300 hover:-translate-y-1 hover:shadow-md"
-        >
-          <div className="bg-slate-100 px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-              Line Code
-            </p>
+    FROM Formm_trans
+    INNER JOIN pt_mstr ON Formm_trans.Item = pt_mstr.pt_part
+    INNER JOIN itemgroup ON pt_mstr.pt_group = itemgroup.code_value1
 
-            <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-              {item.LineCode}
-            </p>
-          </div>
+    WHERE [Date] BETWEEN @start AND @end
+    AND [OP] = 20
 
-          <div className="space-y-3 px-5 py-5 text-sm text-slate-700">
-            <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-3">
-              <span className="font-medium text-slate-600">Proc</span>
-              <span className="font-semibold text-slate-900">
-                {Number(item.TotalQtyProc).toLocaleString()}
-              </span>
-            </div>
+    GROUP BY
+      CASE
+        WHEN itemgroup.code_value1 IN ('101','102','103','104') THEN '101-104'
+        WHEN itemgroup.code_value1 IN ('105','106') THEN '105-106'
+        WHEN itemgroup.code_value1 IN ('201','202','203','204') THEN '201-204'
+        WHEN itemgroup.code_value1 = '205' THEN '205'
+        WHEN itemgroup.code_value1 IN ('301','302','303','304') THEN '301-304'
+        WHEN itemgroup.code_value1 IN ('401','402','403','404') THEN '401-404'
+        WHEN itemgroup.code_value1 IN ('501','502','503','504') THEN '501-504'
+        WHEN itemgroup.code_value1 IN ('601','602','603','604') THEN '601-604'
+        WHEN itemgroup.code_value1 IN ('701','702','703','704') THEN '701-704'
+        WHEN itemgroup.code_value1 IN ('801','802','803','804') THEN '801-804'
+      END
+  `;
 
-            <div className="flex items-center justify-between rounded-2xl bg-sky-50 px-3 py-3 text-sky-700">
-              <span className="font-medium">ยอด A</span>
-              <span className="font-semibold">
-                {Number(item.TotalQtyMoved).toLocaleString()}
-              </span>
-            </div>
+  useEffect(() => {
+    if (!startDate || !endDate) return;
 
-            <div className="flex items-center justify-between rounded-2xl bg-rose-50 px-3 py-3 text-rose-700">
-              <span className="font-medium">Scrap</span>
-              <span className="font-semibold">
-                {Number(item.TotalQtyScrap).toLocaleString()}
-              </span>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+
+        const apiBase =
+          (import.meta as any)?.env?.VITE_API_URL ||
+          `${window.location.protocol}//${window.location.hostname}:3001`;
+
+        const res = await fetch(`${apiBase}/query`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: GROUP_SQL
+              .replace("@start", `'${format(startDate, "yyyy-MM-dd")}'`)
+              .replace("@end", `'${format(endDate, "yyyy-MM-dd")}'`),
+            db: "formming",
+          }),
+        });
+
+        const json = await res.json();
+        setGroupData(json?.recordset || []);
+      } catch (err) {
+        console.error(err);
+        setGroupData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [startDate, endDate]);
+
+  return { groupData, loading };
 }

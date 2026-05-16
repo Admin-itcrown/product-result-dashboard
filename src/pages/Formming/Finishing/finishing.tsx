@@ -1,34 +1,54 @@
 import React from "react";
-import { Factory, Boxes, Calendar } from "lucide-react";
+import { Factory, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 
-import { useFetchFinishingStats } from "./StatCardfinishing";
-import { StatCardFinishing } from "./StatCardfinishing";
-import { ProductChartfinishing } from "./ProductChartGfinishing";
-import { CategoryChartfinishing } from "./CategoryChartfinishing";
-import { ProductTablefinishing } from "./ProductTablefinishing";
+import {
+  StatCardfinishing,
+  useFetchFinishingStats,
+  useFetchGroupSummary,
+} from "./StatCardfinishing";
 
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { ProductTablefinishing } from "./ProductTablefinishing";
+import { ProductChartfinishing } from "./ProductChartGfinishing";
+import { CategoryChartfinishing } from "./CategoryChartfinishing";
 
 
-const Finishing = () => {
+/* ===============================
+   GROUP LABEL
+================================ */
+const GROUP_LABEL: Record<string, string> = {
+  "101-104": "MUG",
+  "105-106": "EMB/MUG",
+  "201-204": "PLATE",
+  "205": "EMB/PLATE",
+  "301-304": "BOWL",
+  "401-404": "ACC",
+  "501-504": "RAM",
+  "601-604": "ISO/STA",
+  "701-704": "HPC",
+  "801-804": "ISO/NON",
+};
+
+const finishing = () => {
   const [startDate, setStartDate] = React.useState<Date | undefined>(new Date());
   const [endDate, setEndDate] = React.useState<Date | undefined>(new Date());
 
   const [showStart, setShowStart] = React.useState(false);
   const [showEnd, setShowEnd] = React.useState(false);
-  const [showMore, setShowMore] = React.useState(false);
 
-  const { statsData, lineSummary, loading } =
-    useFetchFinishingStats(startDate, endDate);
+  const [showAllGroups, setShowAllGroups] = React.useState(false);
 
-  /* ===============================
-     Total Summary
-  =============================== */
+  const { statsData, loading } = useFetchFinishingStats(startDate, endDate);
+  const { groupData, loading: groupLoading } = useFetchGroupSummary(
+    startDate,
+    endDate
+  );
+
   const totalProc = statsData.reduce(
     (sum: number, item: any) => sum + Number(item.TotalQtyProc ?? 0),
     0
@@ -44,18 +64,15 @@ const Finishing = () => {
     0
   );
 
-  /* ===============================
-     Cards Data
-  =============================== */
   const allCards = [
     {
-      title: "Finishing Total",
+      title: "Formming Total",
       value: loading ? "Loading..." : totalProc.toLocaleString(),
-      change: loading ? "" : totalMoved.toLocaleString(),
-      aPercent:
-        loading || totalProc === 0
-          ? ""
-          : `${((totalMoved / totalProc) * 100).toFixed(2)}%`,
+      change: loading
+        ? ""
+        : `${totalMoved.toLocaleString()} (${(
+            totalProc > 0 ? (totalMoved / totalProc) * 100 : 0
+          ).toFixed(2)}%)`,
       scrap: loading ? "" : totalScrap.toLocaleString(),
       scrapPercent:
         loading || totalProc === 0
@@ -63,36 +80,7 @@ const Finishing = () => {
           : `${((totalScrap / totalProc) * 100).toFixed(2)}%`,
       icon: Factory,
     },
-
-    ...lineSummary.map((item: any) => {
-      const proc = Number(item.TotalQtyProc ?? 0);
-      const movedValue = Number(item.TotalQtyMoved ?? 0);
-      const scrapValue = Number(item.TotalQtyScrap ?? 0);
-
-      return {
-        title: item.LineCode,
-        value: loading
-          ? "Loading..."
-          : proc.toLocaleString(),
-        change: loading
-          ? ""
-          : movedValue.toLocaleString(),
-        aPercent:
-          loading || proc === 0
-            ? ""
-            : `${((movedValue / proc) * 100).toFixed(2)}%`,
-        scrap: loading ? "" : scrapValue.toLocaleString(),
-        scrapPercent:
-          loading || proc === 0
-            ? ""
-            : `${((scrapValue / proc) * 100).toFixed(2)}%`,
-        icon: Boxes,
-      };
-    }),
   ];
-
-  const firstRow = allCards.slice(0, 4);
-  const secondRow = allCards.slice(4);
 
   const dayPickerProps = {
     mode: "single" as const,
@@ -103,6 +91,10 @@ const Finishing = () => {
     showOutsideDays: true,
   };
 
+  const visibleGroups = showAllGroups
+    ? groupData
+    : groupData.slice(0, 4);
+
   return (
     <div className="flex min-h-screen bg-slate-100">
       <DashboardSidebar />
@@ -112,7 +104,7 @@ const Finishing = () => {
 
         <main className="flex-1 p-6 overflow-auto">
 
-          {/* Header */}
+          {/* HEADER */}
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-slate-900">
               Finishing Dashboard
@@ -122,10 +114,9 @@ const Finishing = () => {
             </p>
           </div>
 
-          {/* Date Filter */}
+          {/* DATE FILTER */}
           <div className="mb-8 flex gap-10 items-center flex-wrap">
 
-            {/* Start */}
             <div className="relative flex items-center gap-3">
               <label className="text-sm font-semibold text-blue-700">
                 วันที่เริ่มต้น:
@@ -140,7 +131,7 @@ const Finishing = () => {
                       : ""
                   }
                   onClick={() => setShowStart(!showStart)}
-                  className="px-4 py-3 pr-10 rounded-2xl bg-white shadow-sm w-56 cursor-pointer font-medium text-slate-700"
+                  className="px-4 py-3 pr-10 rounded-2xl bg-white shadow-sm w-56 cursor-pointer"
                 />
 
                 <Calendar
@@ -151,12 +142,12 @@ const Finishing = () => {
               </div>
 
               {showStart && (
-                <div className="absolute top-14 left-0 z-50 bg-white shadow-xl rounded-2xl p-4">
+                <div className="absolute top-14 z-50 bg-white shadow-xl rounded-2xl p-4">
                   <DayPicker
                     {...dayPickerProps}
                     selected={startDate}
-                    onSelect={(date) => {
-                      setStartDate(date);
+                    onSelect={(d) => {
+                      setStartDate(d);
                       setShowStart(false);
                     }}
                   />
@@ -164,7 +155,6 @@ const Finishing = () => {
               )}
             </div>
 
-            {/* End */}
             <div className="relative flex items-center gap-3">
               <label className="text-sm font-semibold text-red-700">
                 วันที่สิ้นสุด:
@@ -179,7 +169,7 @@ const Finishing = () => {
                       : ""
                   }
                   onClick={() => setShowEnd(!showEnd)}
-                  className="px-4 py-3 pr-10 rounded-2xl bg-white shadow-sm w-56 cursor-pointer font-medium text-slate-700"
+                  className="px-4 py-3 pr-10 rounded-2xl bg-white shadow-sm w-56 cursor-pointer"
                 />
 
                 <Calendar
@@ -190,12 +180,12 @@ const Finishing = () => {
               </div>
 
               {showEnd && (
-                <div className="absolute top-14 left-0 z-50 bg-white shadow-xl rounded-2xl p-4">
+                <div className="absolute top-14 z-50 bg-white shadow-xl rounded-2xl p-4">
                   <DayPicker
                     {...dayPickerProps}
                     selected={endDate}
-                    onSelect={(date) => {
-                      setEndDate(date);
+                    onSelect={(d) => {
+                      setEndDate(d);
                       setShowEnd(false);
                     }}
                   />
@@ -204,58 +194,102 @@ const Finishing = () => {
             </div>
           </div>
 
-          {/* Cards */}
-          <div className="space-y-5 mb-8">
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-              {firstRow.map((stat, index) => (
-                <div key={index}>
-                  <StatCardFinishing {...stat} />
+          {/* SUMMARY */}
+          <div className="mb-8">
+            {groupLoading ? (
+              <div className="text-slate-500">Loading...</div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-5">
+
+                  <StatCardfinishing {...allCards[0]} />
+
+                  {visibleGroups.map((item: any, index: number) => {
+                    const proc = Number(item.Ptotal || 0);
+                    const moved = Number(item.sumA || 0);
+                    const scrap = Number(item.sumscrap || 0);
+
+                    const movedPercent =
+                      proc > 0 ? ((moved / proc) * 100).toFixed(2) : "0.00";
+
+                    const scrapPercent =
+                      proc > 0 ? ((scrap / proc) * 100).toFixed(2) : "0.00";
+
+                    const groupKey = String(item.GroupCode ?? "").trim();
+
+                    return (
+                      <div
+                        key={index}
+                        className="rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition"
+                      >
+                        <div className="mb-4">
+                          {/* 🔥 SMALLER TEXT HERE */}
+                          <p className="text-lg font-medium text-slate-500">
+                            Group:{" "}
+                            <span className="text-blue-700 font-bold">
+                              {GROUP_LABEL[groupKey] || groupKey}
+                            </span>
+                          </p>
+                        </div>
+
+                        <div className="space-y-2 text-sm font-medium">
+
+                          <div className="flex justify-between">
+                            <span className="text-slate-700 font-extrabold text-xl">
+                              Proc
+                            </span>
+                            <span className="text-blue-700 font-extrabold text-xl">
+                              {proc.toLocaleString()}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between">
+                            <span>Moved</span>
+                            <span className="text-green-600">
+                              {moved.toLocaleString()} ({movedPercent}%)
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between">
+                            <span>Scrap</span>
+                            <span className="text-red-600">
+                              {scrap.toLocaleString()} ({scrapPercent}%)
+                            </span>
+                          </div>
+
+                        </div>
+                      </div>
+                    );
+                  })}
+
                 </div>
-              ))}
-            </div>
 
-            {secondRow.length > 0 && showMore && (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-                {secondRow.map((stat, index) => (
-                  <div key={index}>
-                    <StatCardFinishing {...stat} />
+                {/* BUTTON */}
+                {groupData.length > 5 && (
+                  <div className="flex justify-center mt-4">
+                    <button
+                      onClick={() => setShowAllGroups(!showAllGroups)}
+                      className="px-6 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition"
+                    >
+                      {showAllGroups ? "ซ่อนข้อมูล" : "ดูเพิ่มเติม"}
+                    </button>
                   </div>
-                ))}
-              </div>
-            )}
-
-            {secondRow.length > 0 && (
-              <div className="flex justify-center pt-1">
-                <button
-                  onClick={() => setShowMore(!showMore)}
-                  className="h-11 w-11 rounded-full bg-white shadow hover:shadow-md hover:scale-105 transition text-slate-700 font-bold"
-                >
-                  {showMore ? "▲" : "▼"}
-                </button>
-              </div>
+                )}
+              </>
             )}
           </div>
 
-          {/* Charts */}
+          {/* CHARTS */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div className="lg:col-span-2">
-              <ProductChartfinishing
-                startDate={startDate}
-                endDate={endDate}
-              />
+              <ProductChartfinishing startDate={startDate} endDate={endDate} />
             </div>
 
-            <CategoryChartfinishing
-              startDate={startDate}
-              endDate={endDate}
-            />
+            <CategoryChartfinishing startDate={startDate} endDate={endDate} />
           </div>
 
-          {/* Table */}
-          <ProductTablefinishing 
-            startDate={startDate}
-            endDate={endDate}
-          />
+          {/* TABLE */}
+          <ProductTablefinishing startDate={startDate} endDate={endDate} />
 
         </main>
       </div>
@@ -263,4 +297,4 @@ const Finishing = () => {
   );
 };
 
-export default Finishing
+export default finishing;
