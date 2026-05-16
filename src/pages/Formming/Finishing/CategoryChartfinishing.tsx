@@ -7,13 +7,12 @@ import {
   Tooltip,
   Sector,
 } from "recharts";
-import { format } from "date-fns";
 import {
-  Sparkles,
   Layers3,
-  Activity,
-  TrendingUp,
+  CircleDollarSign,
+  Sparkles,
 } from "lucide-react";
+import { format } from "date-fns";
 
 // ==============================
 // Config
@@ -24,8 +23,8 @@ const CLAY_GROUP_NAMES: Record<string, string> = {
 };
 
 const CLAY_GROUP_COLORS: Record<string, string> = {
-  S: "#14b8a6",
-  V: "#f97316",
+  S: "#1713eb",
+  V: "#eb0707",
 };
 
 // ==============================
@@ -43,30 +42,17 @@ const renderActiveShape = (props: any) => {
   } = props;
 
   return (
-    <g>
-      <Sector
-        cx={cx}
-        cy={cy}
-        innerRadius={innerRadius}
-        outerRadius={outerRadius + 10}
-        startAngle={startAngle}
-        endAngle={endAngle}
-        fill={fill}
-        stroke="#fff"
-        strokeWidth={3}
-      />
-
-      <Sector
-        cx={cx}
-        cy={cy}
-        innerRadius={outerRadius + 14}
-        outerRadius={outerRadius + 18}
-        startAngle={startAngle}
-        endAngle={endAngle}
-        fill={fill}
-        opacity={0.15}
-      />
-    </g>
+    <Sector
+      cx={cx}
+      cy={cy}
+      innerRadius={innerRadius}
+      outerRadius={outerRadius + 12}
+      startAngle={startAngle}
+      endAngle={endAngle}
+      fill={fill}
+      stroke="#fff"
+      strokeWidth={3}
+    />
   );
 };
 
@@ -76,217 +62,184 @@ export function CategoryChartfinishing({
 }: any) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
+      try {
+        setLoading(true);
+        setError(null);
 
-      const startStr = startDate
-        ? format(startDate, "yyyy-MM-dd")
-        : null;
+        const startStr = startDate
+          ? format(startDate, "yyyy-MM-dd")
+          : null;
 
-      const endStr = endDate
-        ? format(endDate, "yyyy-MM-dd")
-        : null;
+        const endStr = endDate
+          ? format(endDate, "yyyy-MM-dd")
+          : null;
 
-      let query = `
-        SELECT 
-          LEFT([Clay],1) AS ClayGroup,
-          SUM([QtyProc]) AS TotalQtyProc
-        FROM [Db_Formming].[dbo].[Formm_trans]
-      `;
-
-      if (startStr && endStr) {
-        query += `
-          WHERE [Date] BETWEEN '${startStr}' AND '${endStr}'
-          AND [OP] = 20
+        let query = `
+          SELECT 
+            LEFT([Clay],1) AS ClayGroup,
+            SUM([QtyProc]) AS TotalQtyProc
+          FROM [Db_Formming].[dbo].[Formm_trans]
         `;
-      }
 
-      query += `
-        GROUP BY LEFT([Clay],1)
-        ORDER BY ClayGroup
-      `;
+        if (startStr && endStr) {
+          query += `
+            WHERE [Date] BETWEEN '${startStr}' AND '${endStr}'
+            AND [OP] = 20
+          `;
+        }
 
-      const res = await fetch("/query", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          query,
-          db: "glaze",
-        }),
-      });
+        query += `
+          GROUP BY LEFT([Clay],1)
+          ORDER BY ClayGroup
+        `;
 
-      const result = await res.json();
+        const response = await fetch("/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query, db: "glaze" }),
+        });
 
-      const transformed =
-        result.recordset?.map((item: any) => {
-          const code = item.ClayGroup;
+        const result = await response.json();
 
-          return {
-            code,
-            name: CLAY_GROUP_NAMES[code] || code,
-            value: item.TotalQtyProc || 0,
-            color:
-              CLAY_GROUP_COLORS[code] || "#94a3b8",
+        const transformed =
+          result.recordset?.map((item: any) => {
+            const code = item.ClayGroup;
+
+            return {
+              code,
+              name: CLAY_GROUP_NAMES[code] || code,
+              value: item.TotalQtyProc || 0,
+              color: CLAY_GROUP_COLORS[code] || "#8884d8",
+            };
+          }) || [];
+
+        const sorted = transformed.sort((a, b) => {
+          const order: Record<string, number> = {
+            V: 0,
+            S: 1,
           };
-        }) || [];
 
-      setData(transformed);
-      setLoading(false);
+          return (order[a.code] ?? 2) - (order[b.code] ?? 2);
+        });
+
+        setData(sorted);
+      } catch (err) {
+        setError("Failed to load chart");
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchData();
   }, [startDate, endDate]);
 
-  const total = data.reduce(
-    (a, b) => a + b.value,
-    0
-  );
+  const total = data.reduce((sum, item) => sum + item.value, 0);
 
-  const formatNumber = (n: number) =>
-    n.toLocaleString();
+  const formatNumber = (num: number) =>
+    num.toLocaleString();
+
+  if (error) {
+    return (
+      <div className="bg-card rounded-3xl border border-red-200 p-6 shadow-sm">
+        <p className="text-center text-red-500 font-medium">
+          {error}
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl">
-
+    <div className="relative overflow-hidden rounded-3xl border bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 shadow-xl p-6">
+      
       {/* Glow Background */}
-      <div className="absolute -top-20 -right-20 w-72 h-72 bg-cyan-200/20 rounded-full blur-3xl" />
-      <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-orange-200/20 rounded-full blur-3xl" />
+      <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 blur-3xl rounded-full" />
+      <div className="absolute bottom-0 left-0 w-40 h-40 bg-red-500/10 blur-3xl rounded-full" />
 
       {/* Header */}
-      <div className="relative z-10 p-6 border-b bg-white/70 backdrop-blur-xl">
-
-        <div className="flex items-start justify-between">
-
-          <div className="flex items-center gap-3">
-
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center shadow-lg">
-              <Layers3 className="w-5 h-5 text-white" />
+      <div className="relative z-10 flex items-start justify-between mb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600">
+              <Layers3 size={20} />
             </div>
 
-            <div>
-              <h2 className="text-2xl font-black text-slate-800 tracking-tight">
-                Clay Overview
-              </h2>
-
-              <p className="text-sm text-slate-500">
-                Production Distribution
-              </p>
-            </div>
+            <h3 className="text-2xl font-bold tracking-tight">
+              Clay Overview
+            </h3>
           </div>
 
-          {/* KPI */}
-          <div className="text-right">
+          <p className="text-sm text-muted-foreground">
+            Production summary by clay category
+          </p>
+        </div>
 
-            <div className="flex items-center justify-end gap-1 text-slate-500 text-xs mb-1">
-              <Activity className="w-3 h-3" />
-              TOTAL OUTPUT
-            </div>
-
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight">
-              {formatNumber(total)}
-            </h1>
-
-            <div className="flex items-center justify-end gap-1 text-emerald-500 text-xs font-semibold mt-1">
-              <TrendingUp className="w-3 h-3" />
-              Live Production
-            </div>
-          </div>
+        <div className="hidden md:flex items-center gap-2 text-xs bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-full">
+          <Sparkles size={14} />
+          Live Analytics
         </div>
       </div>
 
       {/* Chart */}
-      <div className="relative z-10 p-6">
-
-        {/* ลดขนาดกราฟ */}
-        <div className="h-[360px]">
-
-          {loading ? (
-            <div className="flex h-full items-center justify-center">
-
-              <div className="flex flex-col items-center gap-3">
-
-                <div className="w-12 h-12 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-
-                <p className="text-sm text-slate-500">
-                  Loading production...
-                </p>
-              </div>
+      <div className="relative z-10 h-[430px]">
+        {loading ? (
+          <div className="flex h-full items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm text-muted-foreground">
+                Loading Chart...
+              </span>
             </div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
+          </div>
+        ) : (
+          <>
+            <ResponsiveContainer width="100%" height="78%">
               <PieChart>
-
-                <defs>
-                  <linearGradient
-                    id="centerGlow"
-                    x1="0"
-                    y1="0"
-                    x2="1"
-                    y2="1"
-                  >
-                    <stop
-                      offset="0%"
-                      stopColor="#ffffff"
-                    />
-
-                    <stop
-                      offset="100%"
-                      stopColor="#f1f5f9"
-                    />
-                  </linearGradient>
-                </defs>
-
                 <Pie
                   data={data}
                   dataKey="value"
                   cx="50%"
                   cy="50%"
-                  innerRadius={78}
-                  outerRadius={118}
+                  innerRadius={85}
+                  outerRadius={125}
                   paddingAngle={5}
                   activeIndex={activeIndex}
                   activeShape={renderActiveShape}
                   onMouseEnter={(_, index) =>
                     setActiveIndex(index)
                   }
+                  isAnimationActive
+                  animationDuration={900}
                 >
                   {data.map((entry, index) => (
                     <Cell
                       key={index}
                       fill={entry.color}
-                      stroke="#fff"
-                      strokeWidth={3}
+                      stroke="rgba(255,255,255,0.7)"
+                      strokeWidth={2}
                     />
                   ))}
                 </Pie>
 
-                {/* Center */}
-                <circle
-                  cx="50%"
-                  cy="50%"
-                  r="58"
-                  fill="url(#centerGlow)"
-                />
-
+                {/* Center Text */}
                 <text
                   x="50%"
-                  y="46%"
+                  y="45%"
                   textAnchor="middle"
-                  className="fill-slate-400 text-[10px] font-semibold tracking-widest"
+                  className="fill-muted-foreground text-sm"
                 >
-                  TOTAL
+                  TOTAL OUTPUT
                 </text>
 
                 <text
                   x="50%"
                   y="54%"
                   textAnchor="middle"
-                  className="fill-slate-800 text-[28px] font-black"
+                  className="fill-foreground text-[30px] font-extrabold"
                 >
                   {formatNumber(total)}
                 </text>
@@ -295,21 +248,18 @@ export function CategoryChartfinishing({
                   x="50%"
                   y="62%"
                   textAnchor="middle"
-                  className="fill-emerald-500 text-[11px] font-bold"
+                  className="fill-muted-foreground text-xs"
                 >
-                  Production
+                  pcs production
                 </text>
 
-                {/* Tooltip */}
                 <Tooltip
                   contentStyle={{
-                    borderRadius: 18,
+                    borderRadius: "16px",
                     border: "none",
-                    background:
-                      "rgba(255,255,255,0.95)",
-                    backdropFilter: "blur(10px)",
                     boxShadow:
-                      "0 20px 40px rgba(0,0,0,0.12)",
+                      "0 10px 30px rgba(0,0,0,0.15)",
+                    padding: "10px 14px",
                   }}
                   formatter={(value: number) => {
                     const percent = (
@@ -320,79 +270,93 @@ export function CategoryChartfinishing({
                     return [
                       `${formatNumber(
                         value
-                      )} (${percent}%)`,
-                      "Qty",
+                      )} pcs (${percent}%)`,
+                      "Quantity",
                     ];
                   }}
                 />
               </PieChart>
             </ResponsiveContainer>
-          )}
-        </div>
 
-        {/* Legend + Percent */}
-        {!loading && (
-          <div className="flex items-center justify-center gap-5 mt-2 flex-wrap">
+            {/* Bottom Summary */}
+            <div className="grid grid-cols-2 gap-4 -mt-2">
+              {data.map((item, index) => {
+                const percent = (
+                  (item.value / total) *
+                  100
+                ).toFixed(1);
 
-            {data.map((item, index) => {
-              const percent = (
-                (item.value / total) *
-                100
-              ).toFixed(1);
-
-              return (
-                <div
-                  key={index}
-                  className="flex items-center gap-3 px-4 py-2 rounded-xl bg-white border shadow-sm"
-                >
-
+                return (
                   <div
-                    className="w-4 h-4 rounded-full"
+                    key={index}
+                    className="group relative overflow-hidden rounded-2xl border bg-white/70 dark:bg-slate-900/70 backdrop-blur p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
                     style={{
-                      backgroundColor: item.color,
+                      borderColor: `${item.color}40`,
                     }}
-                  />
-
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-700 text-sm">
-                      {item.name}
-                    </span>
-
-                    <span
-                      className="text-sm font-bold"
+                  >
+                    {/* Glow */}
+                    <div
+                      className="absolute inset-0 opacity-10 group-hover:opacity-20 transition"
                       style={{
-                        color: item.color,
+                        background: item.color,
                       }}
-                    >
-                      {percent}%
-                    </span>
+                    />
+
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="w-4 h-4 rounded-md shadow"
+                            style={{
+                              backgroundColor: item.color,
+                            }}
+                          />
+
+                          <span className="font-bold text-base">
+                            {item.name}
+                          </span>
+                        </div>
+
+                        <CircleDollarSign
+                          size={18}
+                          style={{
+                            color: item.color,
+                          }}
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <div
+                          className="text-2xl font-extrabold"
+                          style={{
+                            color: item.color,
+                          }}
+                        >
+                          {percent}%
+                        </div>
+
+                        <div className="text-sm text-muted-foreground">
+                          {formatNumber(item.value)} pcs
+                        </div>
+                      </div>
+
+                      {/* Progress */}
+                      <div className="mt-3 h-2 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${percent}%`,
+                            backgroundColor: item.color,
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </>
         )}
-
-        {/* Footer */}
-        <div className="flex items-center justify-between mt-6 pt-4 border-t text-xs text-slate-400">
-
-          <div className="flex items-center gap-1">
-            <Sparkles className="w-3 h-3" />
-            Smart Analytics Dashboard
-          </div>
-
-          <div>
-            {startDate && endDate
-              ? `${format(
-                  startDate,
-                  "dd/MM/yyyy"
-                )} - ${format(
-                  endDate,
-                  "dd/MM/yyyy"
-                )}`
-              : "Realtime Data"}
-          </div>
-        </div>
       </div>
     </div>
   );

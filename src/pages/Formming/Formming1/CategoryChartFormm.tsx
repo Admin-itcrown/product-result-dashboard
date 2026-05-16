@@ -7,6 +7,11 @@ import {
   Tooltip,
   Sector,
 } from "recharts";
+import {
+  Layers3,
+  CircleDollarSign,
+  Sparkles,
+} from "lucide-react";
 import { format } from "date-fns";
 
 // ==============================
@@ -18,12 +23,12 @@ const CLAY_GROUP_NAMES: Record<string, string> = {
 };
 
 const CLAY_GROUP_COLORS: Record<string, string> = {
-  S: "#ef4444", // 🔴 red-500 (ปรับใหม่)
-  V: "#2563eb", // 🔵 blue-600 (ปรับใหม่)
+  S: "#ef4444",
+  V: "#2563eb",
 };
 
 // ==============================
-// Hover Expand Shape
+// Hover Shape
 // ==============================
 const renderActiveShape = (props: any) => {
   const {
@@ -41,12 +46,12 @@ const renderActiveShape = (props: any) => {
       cx={cx}
       cy={cy}
       innerRadius={innerRadius}
-      outerRadius={outerRadius + 10}   // 🔥 ใหญ่ขึ้นตอน hover
+      outerRadius={outerRadius + 12}
       startAngle={startAngle}
       endAngle={endAngle}
       fill={fill}
       stroke="#fff"
-      strokeWidth={2}
+      strokeWidth={3}
     />
   );
 };
@@ -118,6 +123,7 @@ export function CategoryChartFormming({
             V: 0,
             S: 1,
           };
+
           return (order[a.code] ?? 2) - (order[b.code] ?? 2);
         });
 
@@ -133,104 +139,218 @@ export function CategoryChartFormming({
   }, [startDate, endDate]);
 
   const total = data.reduce((sum, item) => sum + item.value, 0);
-  const formatNumber = (num: number) => num.toLocaleString();
+
+  const formatNumber = (num: number) =>
+    num.toLocaleString();
 
   if (error) {
     return (
-      <div className="bg-card rounded-lg border p-6">
-        <p className="text-center text-red-500">{error}</p>
+      <div className="bg-card rounded-3xl border border-red-200 p-6 shadow-sm">
+        <p className="text-center text-red-500 font-medium">
+          {error}
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="bg-card rounded-lg border p-6 shadow-card">
-      <div className="mb-6">
-        <h3 className="text-2xl font-bold">Clay Overview</h3>
-        <p className="text-sm text-muted-foreground">
-          Production by clay category
-        </p>
+    <div className="relative overflow-hidden rounded-3xl border bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 shadow-xl p-6">
+      
+      {/* Glow Background */}
+      <div className="absolute top-0 right-0 w-40 h-40 bg-blue-500/10 blur-3xl rounded-full" />
+      <div className="absolute bottom-0 left-0 w-40 h-40 bg-red-500/10 blur-3xl rounded-full" />
+
+      {/* Header */}
+      <div className="relative z-10 flex items-start justify-between mb-6">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600">
+              <Layers3 size={20} />
+            </div>
+
+            <h3 className="text-2xl font-bold tracking-tight">
+              Clay Overview
+            </h3>
+          </div>
+
+          <p className="text-sm text-muted-foreground">
+            Production summary by clay category
+          </p>
+        </div>
+
+        <div className="hidden md:flex items-center gap-2 text-xs bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-full">
+          <Sparkles size={14} />
+          Live Analytics
+        </div>
       </div>
 
-      {/* 🔥 เพิ่มความสูง chart */}
-      <div className="h-[380px]">
+      {/* Chart */}
+      <div className="relative z-10 h-[430px]">
         {loading ? (
           <div className="flex h-full items-center justify-center">
-            Loading...
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm text-muted-foreground">
+                Loading Chart...
+              </span>
+            </div>
           </div>
         ) : (
           <>
-            {/* 🔥 Pie ใหญ่ขึ้น (85% แทน 70%) */}
-            <ResponsiveContainer width="100%" height="85%">
+            <ResponsiveContainer width="100%" height="78%">
               <PieChart>
                 <Pie
                   data={data}
                   dataKey="value"
                   cx="50%"
                   cy="50%"
-                  innerRadius={75}   // 🔥 ใหญ่ขึ้น
-                  outerRadius={115}  // 🔥 ใหญ่ขึ้น
-                  paddingAngle={4}
+                  innerRadius={85}
+                  outerRadius={125}
+                  paddingAngle={5}
                   activeIndex={activeIndex}
                   activeShape={renderActiveShape}
-                  onMouseEnter={(_, index) => setActiveIndex(index)}
+                  onMouseEnter={(_, index) =>
+                    setActiveIndex(index)
+                  }
                   isAnimationActive
                   animationDuration={900}
                 >
                   {data.map((entry, index) => (
-                    <Cell key={index} fill={entry.color} />
+                    <Cell
+                      key={index}
+                      fill={entry.color}
+                      stroke="rgba(255,255,255,0.7)"
+                      strokeWidth={2}
+                    />
                   ))}
                 </Pie>
 
+                {/* Center Text */}
                 <text
                   x="50%"
-                  y="46%"
+                  y="45%"
                   textAnchor="middle"
                   className="fill-muted-foreground text-sm"
                 >
-                  TOTAL
+                  TOTAL OUTPUT
                 </text>
 
                 <text
                   x="50%"
                   y="54%"
                   textAnchor="middle"
-                  className="fill-foreground text-2xl font-bold"
+                  className="fill-foreground text-[30px] font-extrabold"
                 >
                   {formatNumber(total)}
                 </text>
 
+                <text
+                  x="50%"
+                  y="62%"
+                  textAnchor="middle"
+                  className="fill-muted-foreground text-xs"
+                >
+                  pcs production
+                </text>
+
                 <Tooltip
+                  contentStyle={{
+                    borderRadius: "16px",
+                    border: "none",
+                    boxShadow:
+                      "0 10px 30px rgba(0,0,0,0.15)",
+                    padding: "10px 14px",
+                  }}
                   formatter={(value: number) => {
-                    const percent = ((value / total) * 100).toFixed(1);
-                    return [`${formatNumber(value)} (${percent}%)`, "Quantity"];
+                    const percent = (
+                      (value / total) *
+                      100
+                    ).toFixed(1);
+
+                    return [
+                      `${formatNumber(
+                        value
+                      )} pcs (${percent}%)`,
+                      "Quantity",
+                    ];
                   }}
                 />
               </PieChart>
             </ResponsiveContainer>
 
-            {/* Legend */}
-            <div className="grid grid-cols-2 gap-4 mt-4">
+            {/* Bottom Summary */}
+            <div className="grid grid-cols-2 gap-4 -mt-2">
               {data.map((item, index) => {
-                const percent = ((item.value / total) * 100).toFixed(1);
+                const percent = (
+                  (item.value / total) *
+                  100
+                ).toFixed(1);
 
                 return (
                   <div
                     key={index}
-                    className="flex flex-col items-center gap-2 p-3 rounded-xl border"
-                    style={{ borderColor: item.color }}
+                    className="group relative overflow-hidden rounded-2xl border bg-white/70 dark:bg-slate-900/70 backdrop-blur p-4 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg"
+                    style={{
+                      borderColor: `${item.color}40`,
+                    }}
                   >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="w-4 h-4 rounded"
-                        style={{ backgroundColor: item.color }}
-                      />
-                      <span className="font-bold">{item.name}</span>
-                    </div>
+                    {/* Glow */}
+                    <div
+                      className="absolute inset-0 opacity-10 group-hover:opacity-20 transition"
+                      style={{
+                        background: item.color,
+                      }}
+                    />
 
-                    <span style={{ color: item.color }}>
-                      {percent}%
-                    </span>
+                    <div className="relative z-10">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="w-4 h-4 rounded-md shadow"
+                            style={{
+                              backgroundColor: item.color,
+                            }}
+                          />
+
+                          <span className="font-bold text-base">
+                            {item.name}
+                          </span>
+                        </div>
+
+                        <CircleDollarSign
+                          size={18}
+                          style={{
+                            color: item.color,
+                          }}
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <div
+                          className="text-2xl font-extrabold"
+                          style={{
+                            color: item.color,
+                          }}
+                        >
+                          {percent}%
+                        </div>
+
+                        <div className="text-sm text-muted-foreground">
+                          {formatNumber(item.value)} pcs
+                        </div>
+                      </div>
+
+                      {/* Progress */}
+                      <div className="mt-3 h-2 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{
+                            width: `${percent}%`,
+                            backgroundColor: item.color,
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 );
               })}
