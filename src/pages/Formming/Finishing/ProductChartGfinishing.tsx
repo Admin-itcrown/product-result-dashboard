@@ -8,6 +8,7 @@ import {
   Tooltip,
   Legend,
   CartesianGrid,
+  type YAxisProps,
 } from "recharts";
 import { Trophy, Maximize2, X } from "lucide-react";
 import { format } from "date-fns";
@@ -81,6 +82,9 @@ export function ProductChartfinishing({ startDate, endDate }: Props) {
   }, [startDate, endDate]);
 
   const fetchData = async () => {
+    const from = formatDate(startDate);
+    const to = formatDate(endDate);
+
     const query = `
       SELECT 
         CASE 
@@ -117,8 +121,7 @@ export function ProductChartfinishing({ startDate, endDate }: Props) {
         '801','802','803','804'
       )
 
-      AND [Date] BETWEEN '${formatDate(startDate)}'
-      AND '${formatDate(endDate)}'
+      AND [Date] BETWEEN '${from}' AND '${to}'
       AND [OP] = 20
 
       GROUP BY 
@@ -181,30 +184,53 @@ export function ProductChartfinishing({ startDate, endDate }: Props) {
   const totalMoved = data.reduce((s, i) => s + (i.moved || 0), 0);
   const totalScrap = data.reduce((s, i) => s + (i.scrap || 0), 0);
 
-  /* ✅ FIXED: show 25,000 instead of 25k */
-  const YAxisConfig = {
-    width: 80,
-    domain: ["dataMin", "dataMax"] as const,
+  const maxValue = Math.max(...data.map(d => d.proc || 0), 0);
+
+  const niceSteps = [
+    1000, 2000, 5000, 10000, 20000,
+    50000, 100000, 200000, 500000, 1000000,
+  ];
+
+  const step =
+    niceSteps.find(s => maxValue / s <= 10) ||
+    niceSteps[niceSteps.length - 1];
+
+  const ticks = Array.from(
+    { length: Math.ceil(maxValue / step) + 1 },
+    (_, i) => i * step
+  );
+
+  const YAxisConfig: YAxisProps = {
+    width: 90,
+    domain: [0, "dataMax"],
+    ticks,
     tickFormatter: (v: number) => Number(v).toLocaleString(),
   };
 
+  const dateLabel =
+    startDate && endDate
+      ? `${format(startDate, "dd/MM/yyyy")} → ${format(endDate, "dd/MM/yyyy")}`
+      : "-";
+
   return (
     <>
-      {/* MAIN CARD */}
       <div className="bg-gradient-to-br from-white via-slate-50 to-slate-100 border rounded-3xl shadow-xl p-5 h-[620px] flex flex-col">
 
         {/* HEADER */}
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-2">
-            <Trophy className="text-yellow-500" />
-            <h2 className="text-lg font-bold text-slate-700">
-              Finishing Group Analysis
-            </h2>
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Trophy className="text-yellow-500" />
+              <h2 className="text-lg font-bold text-slate-700">
+                Finishing Group Analysis
+              </h2>
+            </div>
+            <p className="text-xs text-slate-500">{dateLabel}</p>
           </div>
 
           <button
             onClick={() => setOpenModal(true)}
-            className="p-2 rounded-xl hover:bg-white shadow-sm transition"
+            className="p-2 rounded-xl hover:bg-white shadow-sm"
           >
             <Maximize2 size={18} />
           </button>
@@ -213,13 +239,13 @@ export function ProductChartfinishing({ startDate, endDate }: Props) {
         {/* KPI */}
         <div className="grid grid-cols-3 gap-3 mb-4">
           {[
-            { label: "Proc", value: totalProc, color: "blue" },
-            { label: "Moved", value: totalMoved, color: "green" },
-            { label: "Scrap", value: totalScrap, color: "rose" },
+            { label: "Proc", value: totalProc },
+            { label: "Moved", value: totalMoved },
+            { label: "Scrap", value: totalScrap },
           ].map((k, i) => (
-            <div key={i} className="bg-white border rounded-2xl p-3 shadow-sm">
+            <div key={i} className="bg-white border rounded-2xl p-3">
               <p className="text-xs text-slate-500">{k.label}</p>
-              <p className={`font-bold text-${k.color}-600`}>
+              <p className="font-bold text-slate-700">
                 {k.value.toLocaleString()}
               </p>
             </div>
@@ -236,18 +262,18 @@ export function ProductChartfinishing({ startDate, endDate }: Props) {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data} barCategoryGap={20}>
                 <CartesianGrid opacity={0.15} />
-
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 11 }}
-                  interval={0}
-                  height={50}
-                />
-
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis {...YAxisConfig} />
-
                 <Tooltip content={<CustomTooltip />} />
-                <Legend />
+
+                {/* ✅ FIX LEGEND */}
+                <Legend
+                  payload={[
+                    { value: "Proc", type: "square", color: COLORS.proc },
+                    { value: "Moved", type: "square", color: COLORS.moved },
+                    { value: "Scrap", type: "square", color: COLORS.scrap },
+                  ]}
+                />
 
                 <Bar dataKey="proc" fill={COLORS.proc} barSize={18} />
                 <Bar dataKey="moved" fill={COLORS.moved} barSize={18} />
@@ -269,23 +295,30 @@ export function ProductChartfinishing({ startDate, endDate }: Props) {
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              className="absolute top-5 right-5 p-2 hover:bg-slate-100 rounded-xl"
+              className="absolute top-5 right-5 p-2"
               onClick={() => setOpenModal(false)}
             >
               <X />
             </button>
 
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} barCategoryGap={20}>
+              <BarChart data={data}>
                 <CartesianGrid opacity={0.15} />
                 <XAxis dataKey="name" />
                 <YAxis {...YAxisConfig} />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend />
 
-                <Bar dataKey="proc" fill={COLORS.proc} barSize={18} />
-                <Bar dataKey="moved" fill={COLORS.moved} barSize={18} />
-                <Bar dataKey="scrap" fill={COLORS.scrap} barSize={18} />
+                <Legend
+                  payload={[
+                    { value: "Proc", type: "square", color: COLORS.proc },
+                    { value: "Moved", type: "square", color: COLORS.moved },
+                    { value: "Scrap", type: "square", color: COLORS.scrap },
+                  ]}
+                />
+
+                <Bar dataKey="proc" fill={COLORS.proc} />
+                <Bar dataKey="moved" fill={COLORS.moved} />
+                <Bar dataKey="scrap" fill={COLORS.scrap} />
               </BarChart>
             </ResponsiveContainer>
           </div>
