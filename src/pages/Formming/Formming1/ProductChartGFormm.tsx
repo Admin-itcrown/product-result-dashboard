@@ -7,7 +7,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { Trophy } from "lucide-react";
+import { Trophy, Maximize2, X } from "lucide-react";
 import { format } from "date-fns";
 
 interface Props {
@@ -15,9 +15,7 @@ interface Props {
   endDate?: Date;
 }
 
-/* =========================
-   COLORS
-========================= */
+/* COLORS */
 const COLORS = [
   "#3B82F6",
   "#10B981",
@@ -30,9 +28,7 @@ const COLORS = [
   "#F97316",
 ];
 
-/* =========================
-   GROUP MAP NAME
-========================= */
+/* GROUP MAP */
 const GROUP_NAME_MAP: Record<string, string> = {
   "101-104": "MUG",
   "105-106": "EMB/MUG",
@@ -52,6 +48,7 @@ export function ProductChartFormming({
 }: Props) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
 
   const apiBase =
     (import.meta as any)?.env?.VITE_API_URL ||
@@ -65,9 +62,6 @@ export function ProductChartFormming({
   const formatDate = (d?: Date) =>
     d ? format(d, "yyyy-MM-dd") : "";
 
-  /* =========================
-     FETCH DATA
-  ========================= */
   const fetchData = async () => {
     const query = `
       SELECT 
@@ -139,8 +133,7 @@ export function ProductChartFormming({
       const chartData = records
         .filter((x: any) => Number(x.Ptotal || 0) > 0)
         .map((x: any) => {
-          const label =
-            GROUP_NAME_MAP[x.GroupCode] || x.GroupCode;
+          const label = GROUP_NAME_MAP[x.GroupCode] || x.GroupCode;
 
           return {
             name: label,
@@ -161,94 +154,158 @@ export function ProductChartFormming({
 
   const total = data.reduce((s, i) => s + i.value, 0);
 
-  /* =========================
-     UI
-  ========================= */
   return (
-    <div className="relative bg-white rounded-3xl border shadow-xl p-6 h-[620px]">
+    <>
+      {/* CARD */}
+      <div className="relative bg-white rounded-3xl border shadow-xl p-6 h-[620px]">
+        {/* HEADER */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <Trophy className="text-yellow-500" />
+            <h2 className="text-xl font-bold text-slate-800">
+              Formming Group Analysis
+            </h2>
+          </div>
 
-      {/* HEADER */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2">
-          <Trophy className="text-yellow-500" />
-          <h2 className="text-xl font-bold text-slate-800">
-            Formming Group Analysis
-          </h2>
+          <div className="flex items-center gap-3">
+            {/* DATE */}
+            <div className="text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-600 border">
+              {startDate && endDate
+                ? `${format(startDate, "dd/MM/yyyy")} - ${format(
+                    endDate,
+                    "dd/MM/yyyy"
+                  )}`
+                : "No Date"}
+            </div>
+
+            {/* OPEN MODAL */}
+            <button
+              onClick={() => setOpenModal(true)}
+              className="p-2 rounded-lg hover:bg-slate-100 transition"
+            >
+              <Maximize2 size={18} />
+            </button>
+          </div>
         </div>
 
-        {/* DATE BADGE */}
-        <div className="text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-600 border">
-          {startDate && endDate
-            ? `${format(startDate, "dd/MM/yyyy")} - ${format(
-                endDate,
-                "dd/MM/yyyy"
-              )}`
-            : "No Date"}
-        </div>
+        {/* CHART */}
+        {loading ? (
+          <div className="h-full flex items-center justify-center text-slate-500">
+            Loading...
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="90%">
+            <PieChart>
+              <Pie
+                data={data}
+                dataKey="value"
+                nameKey="name"
+                innerRadius={70}
+                outerRadius={140}
+                paddingAngle={3}
+                label={({ name, value }) => {
+                  const percent = total
+                    ? ((value / total) * 100).toFixed(1)
+                    : "0";
+
+                  return `${name} : ${Number(value).toLocaleString()} | ${percent}%`;
+                }}
+              >
+                {data.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                ))}
+              </Pie>
+
+              <text
+                x="50%"
+                y="50%"
+                textAnchor="middle"
+                dominantBaseline="middle"
+              >
+                <tspan x="50%" dy="-8" fontSize="13" fill="#64748b">
+                  TOTAL
+                </tspan>
+                <tspan x="50%" dy="20" fontSize="18" fontWeight="bold">
+                  {total.toLocaleString()}
+                </tspan>
+              </text>
+
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
-      {/* CHART */}
-      {loading ? (
-        <div className="h-full flex items-center justify-center text-slate-500">
-          Loading...
+      {/* =========================
+          MODAL FULLSCREEN
+      ========================= */}
+      {openModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center">
+          
+          {/* MODAL BOX */}
+          <div className="bg-white w-[95vw] h-[90vh] rounded-2xl shadow-2xl p-6 relative">
+
+            {/* CLOSE */}
+            <button
+              onClick={() => setOpenModal(false)}
+              className="absolute top-4 right-4 p-2 rounded-lg hover:bg-slate-100"
+            >
+              <X />
+            </button>
+
+            {/* TITLE */}
+            <div className="flex items-center gap-2 mb-4">
+              <Trophy className="text-yellow-500" />
+              <h2 className="text-xl font-bold">
+                Formming Group Analysis (Expanded)
+              </h2>
+            </div>
+
+            {/* CHART BIG */}
+            <ResponsiveContainer width="100%" height="90%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={90}
+                  outerRadius={180}
+                  paddingAngle={3}
+                  label={({ name, value }) => {
+                    const percent = total
+                      ? ((value / total) * 100).toFixed(1)
+                      : "0";
+
+                    return `${name} : ${Number(value).toLocaleString()} | ${percent}%`;
+                  }}
+                >
+                  {data.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+
+                <text
+                  x="50%"
+                  y="50%"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                >
+                  <tspan x="50%" dy="-10" fontSize="14" fill="#64748b">
+                    TOTAL
+                  </tspan>
+                  <tspan x="50%" dy="24" fontSize="22" fontWeight="bold">
+                    {total.toLocaleString()}
+                  </tspan>
+                </text>
+
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      ) : (
-        <ResponsiveContainer width="100%" height="90%">
-          <PieChart>
-
-            <Pie
-              data={data}
-              dataKey="value"
-              nameKey="name"
-              innerRadius={70}
-              outerRadius={140}
-              paddingAngle={3}
-              label={({ name, value }) => {
-                const percent = total
-                  ? ((value / total) * 100).toFixed(1)
-                  : "0";
-
-                return `${name} : ${Number(value).toLocaleString()} | ${percent}%`;
-              }}
-            >
-              {data.map((_, i) => (
-                <Cell
-                  key={i}
-                  fill={COLORS[i % COLORS.length]}
-                />
-              ))}
-            </Pie>
-
-            {/* CENTER */}
-            <text
-              x="50%"
-              y="50%"
-              textAnchor="middle"
-              dominantBaseline="middle"
-            >
-              <tspan x="50%" dy="-8" fontSize="13" fill="#64748b">
-                TOTAL
-              </tspan>
-              <tspan x="50%" dy="20" fontSize="18" fontWeight="bold">
-                {total.toLocaleString()}
-              </tspan>
-            </text>
-
-            <Tooltip
-              formatter={(value: any, _name: any, props: any) => {
-                const item = props.payload;
-                return [
-                  `${item.name} : ${Number(value).toLocaleString()}`,
-                  `Moved: ${item.moved.toLocaleString()} | Scrap: ${item.scrap.toLocaleString()}`,
-                ];
-              }}
-            />
-
-            <Legend />
-
-          </PieChart>
-        </ResponsiveContainer>
       )}
-    </div>
+    </>
   );
 }

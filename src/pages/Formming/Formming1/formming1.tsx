@@ -18,7 +18,7 @@ import { ProductChartFormming } from "./ProductChartGFormm";
 import { CategoryChartFormming } from "./CategoryChartFormm";
 
 /* ===============================
-   ONLY FIX LABEL (NO UI CHANGE)
+   GROUP LABEL
 ================================ */
 const GROUP_LABEL: Record<string, string> = {
   "101-104": "MUG",
@@ -39,6 +39,8 @@ const Formming1 = () => {
 
   const [showStart, setShowStart] = React.useState(false);
   const [showEnd, setShowEnd] = React.useState(false);
+
+  const [showAllGroups, setShowAllGroups] = React.useState(false);
 
   const { statsData, loading } = useFetchFormmingStats(startDate, endDate);
   const { groupData, loading: groupLoading } = useFetchGroupSummary(
@@ -88,6 +90,10 @@ const Formming1 = () => {
     showOutsideDays: true,
   };
 
+  const visibleGroups = showAllGroups
+    ? groupData
+    : groupData.slice(0, 4);
+
   return (
     <div className="flex min-h-screen bg-slate-100">
       <DashboardSidebar />
@@ -97,7 +103,7 @@ const Formming1 = () => {
 
         <main className="flex-1 p-6 overflow-auto">
 
-          {/* HEADER (เดิม) */}
+          {/* HEADER */}
           <div className="mb-6">
             <h1 className="text-3xl font-bold text-slate-900">
               Formming Dashboard
@@ -107,7 +113,7 @@ const Formming1 = () => {
             </p>
           </div>
 
-          {/* DATE FILTER (เดิม) */}
+          {/* DATE FILTER */}
           <div className="mb-8 flex gap-10 items-center flex-wrap">
 
             <div className="relative flex items-center gap-3">
@@ -129,7 +135,7 @@ const Formming1 = () => {
 
                 <Calendar
                   size={18}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer"
                   onClick={() => setShowStart(!showStart)}
                 />
               </div>
@@ -167,7 +173,7 @@ const Formming1 = () => {
 
                 <Calendar
                   size={18}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer"
                   onClick={() => setShowEnd(!showEnd)}
                 />
               </div>
@@ -187,76 +193,92 @@ const Formming1 = () => {
             </div>
           </div>
 
-          {/* SUMMARY (UI เดิม 100%) */}
+          {/* SUMMARY */}
           <div className="mb-8">
             {groupLoading ? (
               <div className="text-slate-500">Loading...</div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-5">
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-5">
 
-                <StatCardFormm {...allCards[0]} />
+                  <StatCardFormm {...allCards[0]} />
 
-                {groupData.map((item: any, index: number) => {
-                  const proc = Number(item.Ptotal || 0);
-                  const moved = Number(item.sumA || 0);
-                  const scrap = Number(item.sumscrap || 0);
+                  {visibleGroups.map((item: any, index: number) => {
+                    const proc = Number(item.Ptotal || 0);
+                    const moved = Number(item.sumA || 0);
+                    const scrap = Number(item.sumscrap || 0);
 
-                  const movedPercent =
-                    proc > 0 ? ((moved / proc) * 100).toFixed(2) : "0.00";
+                    const movedPercent =
+                      proc > 0 ? ((moved / proc) * 100).toFixed(2) : "0.00";
 
-                  const scrapPercent =
-                    proc > 0 ? ((scrap / proc) * 100).toFixed(2) : "0.00";
+                    const scrapPercent =
+                      proc > 0 ? ((scrap / proc) * 100).toFixed(2) : "0.00";
 
-                  return (
-                    <div
-                      key={index}
-                      className="rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition"
+                    const groupKey = String(item.GroupCode ?? "").trim();
+
+                    return (
+                      <div
+                        key={index}
+                        className="rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition"
+                      >
+                        <div className="mb-4">
+                          {/* 🔥 SMALLER TEXT HERE */}
+                          <p className="text-lg font-medium text-slate-500">
+                            Group:{" "}
+                            <span className="text-blue-700 font-bold">
+                              {GROUP_LABEL[groupKey] || groupKey}
+                            </span>
+                          </p>
+                        </div>
+
+                        <div className="space-y-2 text-sm font-medium">
+
+                          <div className="flex justify-between">
+                            <span className="text-slate-700 font-extrabold text-xl">
+                              Proc
+                            </span>
+                            <span className="text-blue-700 font-extrabold text-xl">
+                              {proc.toLocaleString()}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between">
+                            <span>Moved</span>
+                            <span className="text-green-600">
+                              {moved.toLocaleString()} ({movedPercent}%)
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between">
+                            <span>Scrap</span>
+                            <span className="text-red-600">
+                              {scrap.toLocaleString()} ({scrapPercent}%)
+                            </span>
+                          </div>
+
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                </div>
+
+                {/* BUTTON */}
+                {groupData.length > 5 && (
+                  <div className="flex justify-center mt-4">
+                    <button
+                      onClick={() => setShowAllGroups(!showAllGroups)}
+                      className="px-6 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition"
                     >
-                      <div className="mb-4">
-
-                        {/* 🔥 FIX ONLY THIS LINE */}
-                        <p className="text-sm text-slate-500 font-medium text-2xl">
-                          Group:{" "}
-                          <span className="text-blue-700 font-bold">
-                            {GROUP_LABEL[item.GroupCode] || item.GroupCode}
-                          </span>
-                        </p>
-
-                      </div>
-
-                      <div className="space-y-2 text-sm font-medium">
-
-                        <div className="flex justify-between">
-                          <span className="text-black-700 font-extrabold text-xl tracking-wide">Proc</span>
-                          <span className="text-blue-700 font-extrabold text-xl tracking-wide">
-  {proc.toLocaleString()}
-</span>
-                        </div>
-
-                        <div className="flex justify-between">
-                          <span>Moved</span>
-                          <span className="text-green-600">
-                            {moved.toLocaleString()} ({movedPercent}%)
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between">
-                          <span>Scrap</span>
-                          <span className="text-red-600">
-                            {scrap.toLocaleString()} ({scrapPercent}%)
-                          </span>
-                        </div>
-
-                      </div>
-                    </div>
-                  );
-                })}
-
-              </div>
+                      {showAllGroups ? "ซ่อนข้อมูล" : "ดูเพิ่มเติม"}
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
-          {/* CHARTS (เดิม) */}
+          {/* CHARTS */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div className="lg:col-span-2">
               <ProductChartFormming startDate={startDate} endDate={endDate} />
@@ -265,7 +287,7 @@ const Formming1 = () => {
             <CategoryChartFormming startDate={startDate} endDate={endDate} />
           </div>
 
-          {/* TABLE (เดิม) */}
+          {/* TABLE */}
           <ProductTableFormm startDate={startDate} endDate={endDate} />
 
         </main>
