@@ -66,7 +66,7 @@ const finishing = () => {
 
   const allCards = [
     {
-      title: "Formming Total",
+      title: "Finishing Total",
       value: loading ? "Loading..." : totalProc.toLocaleString(),
       change: loading
         ? ""
