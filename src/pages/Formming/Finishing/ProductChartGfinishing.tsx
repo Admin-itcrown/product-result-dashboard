@@ -6,11 +6,20 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  Legend,
   CartesianGrid,
+  Cell,
   type YAxisProps,
 } from "recharts";
-import { Trophy, Maximize2, X } from "lucide-react";
+
+import {
+  Trophy,
+  Maximize2,
+  X,
+  Boxes,
+  CheckCircle2,
+  AlertTriangle,
+} from "lucide-react";
+
 import { format } from "date-fns";
 
 interface Props {
@@ -18,14 +27,20 @@ interface Props {
   endDate?: Date;
 }
 
-/* COLORS */
+/* =========================
+   COLORS
+========================= */
+
 const COLORS = {
   proc: "#3B82F6",
   moved: "#22C55E",
   scrap: "#F43F5E",
 };
 
-/* GROUP MAP */
+/* =========================
+   GROUP MAP
+========================= */
+
 const GROUP_NAME_MAP: Record<string, string> = {
   "101-104": "MUG",
   "105-106": "EMB/MUG",
@@ -39,32 +54,100 @@ const GROUP_NAME_MAP: Record<string, string> = {
   "801-804": "ISO/Non",
 };
 
-/* TOOLTIP */
+/* =========================
+   CUSTOM LEGEND
+========================= */
+
+const CustomLegend = () => {
+  const items = [
+    {
+      label: "Proc",
+      color: COLORS.proc,
+      icon: <Boxes size={14} />,
+    },
+    {
+      label: "Moved",
+      color: COLORS.moved,
+      icon: <CheckCircle2 size={14} />,
+    },
+    {
+      label: "Scrap",
+      color: COLORS.scrap,
+      icon: <AlertTriangle size={14} />,
+    },
+  ];
+
+  return (
+    <div className="flex items-center justify-center gap-3 flex-wrap mb-3">
+      {items.map((item) => (
+        <div
+          key={item.label}
+          className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white border shadow-sm"
+        >
+          <div
+            className="w-3 h-3 rounded-full"
+            style={{ background: item.color }}
+          />
+
+          <div style={{ color: item.color }}>{item.icon}</div>
+
+          <span className="text-sm font-semibold text-slate-700">
+            {item.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+/* =========================
+   TOOLTIP
+========================= */
+
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
 
   const d = payload[0]?.payload;
 
   return (
-    <div className="bg-white/90 backdrop-blur border shadow-xl rounded-2xl p-3 text-xs">
-      <p className="font-semibold text-slate-700 mb-2">{label}</p>
+    <div className="bg-white/95 backdrop-blur-xl border border-slate-200 shadow-2xl rounded-3xl p-4 min-w-[220px]">
+      <div className="mb-3">
+        <p className="font-bold text-slate-800 text-sm">{label}</p>
+      </div>
 
-      <div className="space-y-1">
-        <p className="text-blue-500">
-          Proc: {d.proc?.toLocaleString?.() || 0}
-        </p>
-        <p className="text-green-500">
-          Moved: {d.moved?.toLocaleString?.() || 0} ({d.movedPct}%)
-        </p>
-        <p className="text-rose-500">
-          Scrap: {d.scrap?.toLocaleString?.() || 0} ({d.scrapPct}%)
-        </p>
+      <div className="space-y-2 text-sm">
+        <div className="flex items-center justify-between">
+          <span className="text-slate-500">Proc</span>
+
+          <span className="font-bold text-blue-500">
+            {d.proc?.toLocaleString?.()}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-slate-500">Moved</span>
+
+          <span className="font-bold text-green-500">
+            {d.moved?.toLocaleString?.()} ({d.movedPct}%)
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-slate-500">Scrap</span>
+
+          <span className="font-bold text-rose-500">
+            {d.scrap?.toLocaleString?.()} ({d.scrapPct}%)
+          </span>
+        </div>
       </div>
     </div>
   );
 };
 
-export function ProductChartfinishing({ startDate, endDate }: Props) {
+export function ProductChartfinishing({
+  startDate,
+  endDate,
+}: Props) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [openModal, setOpenModal] = useState(false);
@@ -78,6 +161,7 @@ export function ProductChartfinishing({ startDate, endDate }: Props) {
 
   useEffect(() => {
     if (!startDate || !endDate) return;
+
     fetchData();
   }, [startDate, endDate]);
 
@@ -105,23 +189,14 @@ export function ProductChartfinishing({ startDate, endDate }: Props) {
         SUM(Formm_trans.QtyScrap) AS sumscrap
 
       FROM Formm_trans
+
       INNER JOIN pt_mstr 
         ON Formm_trans.Item = pt_mstr.pt_part
+
       INNER JOIN itemgroup 
         ON pt_mstr.pt_group = itemgroup.code_value1
 
-      WHERE itemgroup.code_value1 IN (
-        '101','102','103','104','105','106',
-        '201','202','203','204','205',
-        '301','302','303','304',
-        '401','402','403','404',
-        '501','502','503','504',
-        '601','602','603','604',
-        '701','702','703','704',
-        '801','802','803','804'
-      )
-
-      AND [Date] BETWEEN '${from}' AND '${to}'
+      WHERE [Date] BETWEEN '${from}' AND '${to}'
       AND [OP] = 20
 
       GROUP BY 
@@ -144,8 +219,13 @@ export function ProductChartfinishing({ startDate, endDate }: Props) {
 
       const res = await fetch(`${apiBase}/query`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, db: "formming" }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          query,
+          db: "formming",
+        }),
       });
 
       const payload = await res.json();
@@ -153,24 +233,29 @@ export function ProductChartfinishing({ startDate, endDate }: Props) {
       const records =
         payload?.recordset ||
         payload?.data ||
-        payload?.result ||
         [];
 
       const chartData = records.map((x: any) => {
-        const label =
-          GROUP_NAME_MAP[x.GroupCode] || x.GroupCode || "UNKNOWN";
-
         const proc = Number(x.Ptotal ?? 0);
         const moved = Number(x.sumA ?? 0);
         const scrap = Number(x.sumscrap ?? 0);
 
         return {
-          name: label,
+          name:
+            GROUP_NAME_MAP[x.GroupCode] ||
+            x.GroupCode,
+
           proc,
           moved,
           scrap,
-          movedPct: proc ? ((moved / proc) * 100).toFixed(1) : "0",
-          scrapPct: proc ? ((scrap / proc) * 100).toFixed(1) : "0",
+
+          movedPct: proc
+            ? ((moved / proc) * 100).toFixed(1)
+            : "0",
+
+          scrapPct: proc
+            ? ((scrap / proc) * 100).toFixed(1)
+            : "0",
         };
       });
 
@@ -180,23 +265,56 @@ export function ProductChartfinishing({ startDate, endDate }: Props) {
     }
   };
 
-  const totalProc = data.reduce((s, i) => s + (i.proc || 0), 0);
-  const totalMoved = data.reduce((s, i) => s + (i.moved || 0), 0);
-  const totalScrap = data.reduce((s, i) => s + (i.scrap || 0), 0);
+  /* =========================
+     KPI
+  ========================= */
 
-  const maxValue = Math.max(...data.map(d => d.proc || 0), 0);
+  const totalProc = data.reduce(
+    (s, i) => s + (i.proc || 0),
+    0
+  );
+
+  const totalMoved = data.reduce(
+    (s, i) => s + (i.moved || 0),
+    0
+  );
+
+  const totalScrap = data.reduce(
+    (s, i) => s + (i.scrap || 0),
+    0
+  );
+
+  /* =========================
+     SMART Y AXIS
+  ========================= */
+
+  const maxValue = Math.max(
+    ...data.map((d) => d.proc || 0),
+    0
+  );
 
   const niceSteps = [
-    1000, 2000, 5000, 10000, 20000,
-    50000, 100000, 200000, 500000, 1000000,
+    1000,
+    2000,
+    5000,
+    10000,
+    20000,
+    50000,
+    100000,
+    200000,
+    500000,
+    1000000,
   ];
 
   const step =
-    niceSteps.find(s => maxValue / s <= 10) ||
-    niceSteps[niceSteps.length - 1];
+    niceSteps.find((s) => maxValue / s <= 10) ||
+    1000000;
 
   const ticks = Array.from(
-    { length: Math.ceil(maxValue / step) + 1 },
+    {
+      length:
+        Math.ceil(maxValue / step) + 1,
+    },
     (_, i) => i * step
   );
 
@@ -204,123 +322,288 @@ export function ProductChartfinishing({ startDate, endDate }: Props) {
     width: 90,
     domain: [0, "dataMax"],
     ticks,
-    tickFormatter: (v: number) => Number(v).toLocaleString(),
+
+    tickFormatter: (v: number) =>
+      Number(v).toLocaleString(),
   };
 
   const dateLabel =
     startDate && endDate
-      ? `${format(startDate, "dd/MM/yyyy")} → ${format(endDate, "dd/MM/yyyy")}`
+      ? `${format(
+          startDate,
+          "dd/MM/yyyy"
+        )} → ${format(endDate, "dd/MM/yyyy")}`
       : "-";
 
   return (
     <>
-      <div className="bg-gradient-to-br from-white via-slate-50 to-slate-100 border rounded-3xl shadow-xl p-5 h-[620px] flex flex-col">
+      {/* MAIN CARD */}
+
+      <div className="bg-gradient-to-br from-slate-50 via-white to-slate-100 border border-white/40 rounded-[32px] shadow-2xl p-5 h-[640px] flex flex-col overflow-hidden">
 
         {/* HEADER */}
-        <div className="flex justify-between items-start mb-4">
+
+        <div className="flex items-start justify-between mb-5">
+
           <div>
-            <div className="flex items-center gap-2">
-              <Trophy className="text-yellow-500" />
-              <h2 className="text-lg font-bold text-slate-700">
-                Finishing Group Analysis
-              </h2>
+            <div className="flex items-center gap-3 mb-1">
+
+              <div className="p-2 rounded-2xl bg-yellow-100">
+                <Trophy className="text-yellow-500" />
+              </div>
+
+              <div>
+                <h2 className="text-xl font-black text-slate-800 tracking-tight">
+                  Finishing Group Analysis
+                </h2>
+
+                <p className="text-xs text-slate-500">
+                  Production Summary Dashboard
+                </p>
+              </div>
             </div>
-            <p className="text-xs text-slate-500">{dateLabel}</p>
+
+            <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-slate-100 text-xs text-slate-600 font-medium">
+              {dateLabel}
+            </div>
           </div>
 
           <button
             onClick={() => setOpenModal(true)}
-            className="p-2 rounded-xl hover:bg-white shadow-sm"
+            className="p-3 rounded-2xl bg-white shadow-md hover:scale-105 transition-all"
           >
-            <Maximize2 size={18} />
+            <Maximize2
+              size={18}
+              className="text-slate-700"
+            />
           </button>
         </div>
 
         {/* KPI */}
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          {[
-            { label: "Proc", value: totalProc },
-            { label: "Moved", value: totalMoved },
-            { label: "Scrap", value: totalScrap },
-          ].map((k, i) => (
-            <div key={i} className="bg-white border rounded-2xl p-3">
-              <p className="text-xs text-slate-500">{k.label}</p>
-              <p className="font-bold text-slate-700">
-                {k.value.toLocaleString()}
-              </p>
-            </div>
-          ))}
+
+        <div className="grid grid-cols-3 gap-4 mb-5">
+
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl p-4 text-white shadow-xl">
+            <p className="text-sm opacity-80 mb-1">
+              Proc
+            </p>
+
+            <h1 className="text-3xl font-black tracking-tight">
+              {totalProc.toLocaleString()}
+            </h1>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl p-4 text-white shadow-xl">
+            <p className="text-sm opacity-80 mb-1">
+              Moved
+            </p>
+
+            <h1 className="text-3xl font-black tracking-tight">
+              {totalMoved.toLocaleString()}
+            </h1>
+          </div>
+
+          <div className="bg-gradient-to-br from-rose-500 to-pink-600 rounded-3xl p-4 text-white shadow-xl">
+            <p className="text-sm opacity-80 mb-1">
+              Scrap
+            </p>
+
+            <h1 className="text-3xl font-black tracking-tight">
+              {totalScrap.toLocaleString()}
+            </h1>
+          </div>
         </div>
 
+        {/* LEGEND */}
+
+        <CustomLegend />
+
         {/* CHART */}
-        <div className="flex-1 bg-white border rounded-2xl p-3">
+
+        <div className="flex-1 bg-white/80 backdrop-blur rounded-[28px] border border-slate-200 shadow-inner p-4">
+
           {loading ? (
-            <div className="h-full flex items-center justify-center text-slate-400">
+            <div className="h-full flex items-center justify-center text-slate-400 text-lg font-semibold">
               Loading...
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} barCategoryGap={20}>
-                <CartesianGrid opacity={0.15} />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis {...YAxisConfig} />
-                <Tooltip content={<CustomTooltip />} />
-
-                {/* ✅ FIX LEGEND */}
-                <Legend
-                  payload={[
-                    { value: "Proc", type: "square", color: COLORS.proc },
-                    { value: "Moved", type: "square", color: COLORS.moved },
-                    { value: "Scrap", type: "square", color: COLORS.scrap },
-                  ]}
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+            >
+              <BarChart
+                data={data}
+                barCategoryGap={18}
+                margin={{
+                  top: 20,
+                  right: 20,
+                  left: 0,
+                  bottom: 10,
+                }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  opacity={0.12}
                 />
 
-                <Bar dataKey="proc" fill={COLORS.proc} barSize={18} />
-                <Bar dataKey="moved" fill={COLORS.moved} barSize={18} />
-                <Bar dataKey="scrap" fill={COLORS.scrap} barSize={18} />
+                <XAxis
+                  dataKey="name"
+                  tick={{
+                    fontSize: 12,
+                    fill: "#475569",
+                    fontWeight: 600,
+                  }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+
+                <YAxis
+                  {...YAxisConfig}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{
+                    fill: "#64748B",
+                    fontSize: 11,
+                  }}
+                />
+
+                <Tooltip
+                  content={<CustomTooltip />}
+                  cursor={{
+                    fill: "rgba(59,130,246,0.05)",
+                  }}
+                />
+
+                {/* PROC */}
+
+                <Bar
+                  dataKey="proc"
+                  radius={[10, 10, 0, 0]}
+                  barSize={24}
+                >
+                  {data.map((_, i) => (
+                    <Cell
+                      key={i}
+                      fill={COLORS.proc}
+                    />
+                  ))}
+                </Bar>
+
+                {/* MOVED */}
+
+                <Bar
+                  dataKey="moved"
+                  radius={[10, 10, 0, 0]}
+                  barSize={24}
+                >
+                  {data.map((_, i) => (
+                    <Cell
+                      key={i}
+                      fill={COLORS.moved}
+                    />
+                  ))}
+                </Bar>
+
+                {/* SCRAP */}
+
+                <Bar
+                  dataKey="scrap"
+                  radius={[10, 10, 0, 0]}
+                  barSize={24}
+                >
+                  {data.map((_, i) => (
+                    <Cell
+                      key={i}
+                      fill={COLORS.scrap}
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           )}
         </div>
       </div>
 
-      {/* MODAL */}
+      {/* FULLSCREEN */}
+
       {openModal && (
         <div
-          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center"
           onClick={() => setOpenModal(false)}
         >
           <div
-            className="bg-white w-[96vw] h-[96vh] rounded-3xl p-5"
-            onClick={(e) => e.stopPropagation()}
+            className="bg-white w-[97vw] h-[96vh] rounded-[36px] p-6 shadow-2xl relative flex flex-col"
+            onClick={(e) =>
+              e.stopPropagation()
+            }
           >
             <button
-              className="absolute top-5 right-5 p-2"
+              className="absolute top-5 right-5 p-3 rounded-2xl bg-slate-100 hover:bg-slate-200 transition"
               onClick={() => setOpenModal(false)}
             >
               <X />
             </button>
 
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data}>
-                <CartesianGrid opacity={0.15} />
-                <XAxis dataKey="name" />
-                <YAxis {...YAxisConfig} />
-                <Tooltip content={<CustomTooltip />} />
+            <div className="mb-4">
+              <h1 className="text-2xl font-black text-slate-800">
+                Finishing Group Analysis
+              </h1>
 
-                <Legend
-                  payload={[
-                    { value: "Proc", type: "square", color: COLORS.proc },
-                    { value: "Moved", type: "square", color: COLORS.moved },
-                    { value: "Scrap", type: "square", color: COLORS.scrap },
-                  ]}
-                />
+              <p className="text-sm text-slate-500">
+                {dateLabel}
+              </p>
+            </div>
 
-                <Bar dataKey="proc" fill={COLORS.proc} />
-                <Bar dataKey="moved" fill={COLORS.moved} />
-                <Bar dataKey="scrap" fill={COLORS.scrap} />
-              </BarChart>
-            </ResponsiveContainer>
+            <CustomLegend />
+
+            <div className="flex-1 min-h-0">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+              >
+                <BarChart
+                  data={data}
+                  barCategoryGap={20}
+                  margin={{
+                    top: 20,
+                    right: 30,
+                    left: 20,
+                    bottom: 20,
+                  }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    opacity={0.12}
+                  />
+
+                  <XAxis dataKey="name" />
+
+                  <YAxis {...YAxisConfig} />
+
+                  <Tooltip
+                    content={<CustomTooltip />}
+                  />
+
+                  <Bar
+                    dataKey="proc"
+                    fill={COLORS.proc}
+                    radius={[12, 12, 0, 0]}
+                  />
+
+                  <Bar
+                    dataKey="moved"
+                    fill={COLORS.moved}
+                    radius={[12, 12, 0, 0]}
+                  />
+
+                  <Bar
+                    dataKey="scrap"
+                    fill={COLORS.scrap}
+                    radius={[12, 12, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       )}
