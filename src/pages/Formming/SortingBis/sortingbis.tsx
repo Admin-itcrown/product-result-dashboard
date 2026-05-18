@@ -1,103 +1,98 @@
 import React from "react";
-import { ArrowUpRight, CheckCircle2, Layers, Shuffle } from "lucide-react";
+import { Factory, Calendar } from "lucide-react";
+import { format } from "date-fns";
+import { th } from "date-fns/locale";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
+
+import {
+  StatCardSort,
+  useFetchFormmingStats,
+  useFetchGroupSummary,
+} from "./StatCardSort";
 
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { ProductTableSort } from "./ProductTableSort";
+import { ProductChartSort } from "./ProductChartSort";
+import { CategoryChartSort } from "./CategoryChartSort";
 
-const summaryMetrics = [
-  {
-    title: "ยอดรวม",
-    value: 84230,
-    subtitle: "ชิ้นงานทั้งหมดที่ผ่านการคัดแยก",
-    icon: Layers,
-    accent: "bg-sky-500/10 text-sky-700",
-  },
-  {
-    title: "ยอด A",
-    value: 72140,
-    subtitle: "ชิ้นงานคุณภาพ A",
-    icon: CheckCircle2,
-    accent: "bg-emerald-500/10 text-emerald-700",
-  },
-  {
-    title: "ยอด Scrap",
-    value: 5820,
-    subtitle: "ชิ้นงานที่ต้องคัดทิ้ง",
-    icon: Shuffle,
-    accent: "bg-rose-500/10 text-rose-700",
-  },
-  {
-    title: "Scrap %",
-    value: "6.9%",
-    subtitle: "อัตราส่วน Scrap ต่อยอดรวม",
-    icon: ArrowUpRight,
-    accent: "bg-violet-500/10 text-violet-700",
-  },
-];
+/* ===============================
+   GROUP LABEL
+================================ */
+const GROUP_LABEL: Record<string, string> = {
+  "101-104": "MUG",
+  "105-106": "EMB/MUG",
+  "201-204": "PLATE",
+  "205": "EMB/PLATE",
+  "301-304": "BOWL",
+  "401-404": "ACC",
+  "501-504": "RAM",
+  "601-604": "ISO/STA",
+  "701-704": "HPC",
+  "801-804": "ISO/NON",
+};
 
-const formatNumber = (value: number) => value.toLocaleString("th-TH");
+const sortingbis = () => {
+  const [startDate, setStartDate] = React.useState<Date | undefined>(new Date());
+  const [endDate, setEndDate] = React.useState<Date | undefined>(new Date());
 
-const MetricCard = ({
-  title,
-  value,
-  subtitle,
-  icon: Icon,
-  accent,
-}: {
-  title: string;
-  value: string | number;
-  subtitle: string;
-  icon: React.ElementType;
-  accent: string;
-}) => (
-  <div className="rounded-3xl border border-border bg-white p-6 shadow-card transition hover:-translate-y-1 hover:shadow-card-hover">
-    <div className="flex items-start justify-between gap-4">
-      <div>
-        <p className="text-sm font-medium text-slate-500">{title}</p>
-        <p className="mt-3 text-3xl font-semibold text-slate-900">{value}</p>
-      </div>
-      <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${accent}`}>
-        <Icon className="h-6 w-6" />
-      </div>
-    </div>
-    <p className="mt-5 text-sm text-slate-500">{subtitle}</p>
-  </div>
-);
+  const [showStart, setShowStart] = React.useState(false);
+  const [showEnd, setShowEnd] = React.useState(false);
 
-const ProgressRow = ({
-  label,
-  value,
-  percent,
-  accent,
-}: {
-  label: string;
-  value: number;
-  percent: number;
-  accent: string;
-}) => (
-  <div className="rounded-3xl border border-border bg-white p-5 shadow-card">
-    <div className="flex items-center justify-between gap-4">
-      <div>
-        <p className="text-sm font-medium text-slate-500">{label}</p>
-        <p className="mt-2 text-xl font-semibold text-slate-900">{formatNumber(value)}</p>
-      </div>
-      <div className="text-right">
-        <p className="text-sm text-slate-500">เปอร์เซ็นต์</p>
-        <p className="mt-2 text-2xl font-semibold text-slate-900">{percent.toFixed(1)}%</p>
-      </div>
-    </div>
-    <div className="mt-5 h-3 rounded-full bg-slate-100 overflow-hidden">
-      <div className={`h-full rounded-full ${accent}`} style={{ width: `${Math.min(100, Math.max(0, percent))}%` }} />
-    </div>
-  </div>
-);
+  const [showAllGroups, setShowAllGroups] = React.useState(false);
 
-const SortingBis = () => {
-  const total = 84230;
-  const totalA = 72140;
-  const scrap = 5820;
-  const scrapPercent = total > 0 ? (scrap / total) * 100 : 0;
-  const aPercent = total > 0 ? (totalA / total) * 100 : 0;
+  const { statsData, loading } = useFetchFormmingStats(startDate, endDate);
+  const { groupData, loading: groupLoading } = useFetchGroupSummary(
+    startDate,
+    endDate
+  );
+
+  const totalProc = statsData.reduce(
+    (sum: number, item: any) => sum + Number(item.TotalQtyProc ?? 0),
+    0
+  );
+
+  const totalMoved = statsData.reduce(
+    (sum: number, item: any) => sum + Number(item.TotalQtyMoved ?? 0),
+    0
+  );
+
+  const totalScrap = statsData.reduce(
+    (sum: number, item: any) => sum + Number(item.TotalQtyScrap ?? 0),
+    0
+  );
+
+  const allCards = [
+    {
+      title: "SortingBis Total",
+      value: loading ? "Loading..." : totalProc.toLocaleString(),
+      change: loading
+        ? ""
+        : `${totalMoved.toLocaleString()} (${(
+            totalProc > 0 ? (totalMoved / totalProc) * 100 : 0
+          ).toFixed(2)}%)`,
+      scrap: loading ? "" : totalScrap.toLocaleString(),
+      scrapPercent:
+        loading || totalProc === 0
+          ? ""
+          : `${((totalScrap / totalProc) * 100).toFixed(2)}%`,
+      icon: Factory,
+    },
+  ];
+
+  const dayPickerProps = {
+    mode: "single" as const,
+    locale: th,
+    captionLayout: "dropdown" as const,
+    fromYear: 2020,
+    toYear: 2035,
+    showOutsideDays: true,
+  };
+
+  const visibleGroups = showAllGroups
+    ? groupData
+    : groupData.slice(0, 4);
 
   return (
     <div className="flex min-h-screen bg-slate-100">
@@ -107,62 +102,198 @@ const SortingBis = () => {
         <DashboardHeader />
 
         <main className="flex-1 p-6 overflow-auto">
+
+          {/* HEADER */}
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-slate-900">Sorting Bisque Dashboard</h1>
-            <p className="text-slate-500 mt-2">สรุปการคัดแยกชิ้นงาน Bisque พร้อมยอดรวม ยอด A และ Scrap %</p>
+            <h1 className="text-3xl font-bold text-slate-900">
+              SortingBis Dashboard
+            </h1>
+            <p className="text-slate-500 mt-1">
+              สรุปยอดการผลิต / ยอด A / Scrap
+            </p>
           </div>
 
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4 mb-8">
-            {summaryMetrics.map((metric) => (
-              <MetricCard key={metric.title} {...metric} />
-            ))}
-          </div>
+          {/* DATE FILTER */}
+          <div className="mb-8 flex gap-10 items-center flex-wrap">
 
-          <div className="grid gap-5 xl:grid-cols-[1.5fr_1fr]">
-            <div className="rounded-3xl border border-border bg-white p-6 shadow-card">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold text-slate-900">สัดส่วนการคัดแยก</h2>
-                  <p className="mt-2 text-sm text-slate-500">แสดงอัตรา A และ Scrap จากยอดรวมทั้งหมด</p>
+            <div className="relative flex items-center gap-3">
+              <label className="text-sm font-semibold text-blue-700">
+                วันที่เริ่มต้น:
+              </label>
+
+              <div className="relative">
+                <input
+                  readOnly
+                  value={
+                    startDate
+                      ? format(startDate, "dd/MM/yyyy", { locale: th })
+                      : ""
+                  }
+                  onClick={() => setShowStart(!showStart)}
+                  className="px-4 py-3 pr-10 rounded-2xl bg-white shadow-sm w-56 cursor-pointer"
+                />
+
+                <Calendar
+                  size={18}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer"
+                  onClick={() => setShowStart(!showStart)}
+                />
+              </div>
+
+              {showStart && (
+                <div className="absolute top-14 z-50 bg-white shadow-xl rounded-2xl p-4">
+                  <DayPicker
+                    {...dayPickerProps}
+                    selected={startDate}
+                    onSelect={(d) => {
+                      setStartDate(d);
+                      setShowStart(false);
+                    }}
+                  />
                 </div>
-              </div>
-
-              <div className="mt-8 space-y-5">
-                <ProgressRow label="ยอด A" value={totalA} percent={aPercent} accent="bg-emerald-500" />
-                <ProgressRow label="Scrap" value={scrap} percent={scrapPercent} accent="bg-rose-500" />
-                <ProgressRow label="ยอดรวม" value={total} percent={100} accent="bg-sky-500" />
-              </div>
+              )}
             </div>
 
-            <div className="rounded-3xl border border-border bg-white p-6 shadow-card">
-              <h2 className="text-xl font-semibold text-slate-900">สรุปด่วน</h2>
-              <p className="mt-2 text-sm text-slate-500">ช่วยให้ดูภาพรวมของกระบวนการ Sorting Bisque ได้ทันที</p>
+            <div className="relative flex items-center gap-3">
+              <label className="text-sm font-semibold text-red-700">
+                วันที่สิ้นสุด:
+              </label>
 
-              <div className="mt-6 space-y-4">
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">ชิ้นงาน A</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900">{formatNumber(totalA)}</p>
-                  <p className="text-sm text-slate-500 mt-1">{aPercent.toFixed(1)}% ของยอดรวม</p>
-                </div>
+              <div className="relative">
+                <input
+                  readOnly
+                  value={
+                    endDate
+                      ? format(endDate, "dd/MM/yyyy", { locale: th })
+                      : ""
+                  }
+                  onClick={() => setShowEnd(!showEnd)}
+                  className="px-4 py-3 pr-10 rounded-2xl bg-white shadow-sm w-56 cursor-pointer"
+                />
 
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">Scrap</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900">{formatNumber(scrap)}</p>
-                  <p className="text-sm text-slate-500 mt-1">{scrapPercent.toFixed(2)}% ของยอดรวม</p>
-                </div>
-
-                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">ยอดรวม</p>
-                  <p className="mt-2 text-2xl font-semibold text-slate-900">{formatNumber(total)}</p>
-                  <p className="text-sm text-slate-500 mt-1">อัปเดตข้อมูลล่าสุด</p>
-                </div>
+                <Calendar
+                  size={18}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer"
+                  onClick={() => setShowEnd(!showEnd)}
+                />
               </div>
+
+              {showEnd && (
+                <div className="absolute top-14 z-50 bg-white shadow-xl rounded-2xl p-4">
+                  <DayPicker
+                    {...dayPickerProps}
+                    selected={endDate}
+                    onSelect={(d) => {
+                      setEndDate(d);
+                      setShowEnd(false);
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </div>
+
+          {/* SUMMARY */}
+          <div className="mb-8">
+            {groupLoading ? (
+              <div className="text-slate-500">Loading...</div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-5">
+
+                  <StatCardSort {...allCards[0]} />
+
+                  {visibleGroups.map((item: any, index: number) => {
+                    const proc = Number(item.Ptotal || 0);
+                    const moved = Number(item.sumA || 0);
+                    const scrap = Number(item.sumscrap || 0);
+
+                    const movedPercent =
+                      proc > 0 ? ((moved / proc) * 100).toFixed(2) : "0.00";
+
+                    const scrapPercent =
+                      proc > 0 ? ((scrap / proc) * 100).toFixed(2) : "0.00";
+
+                    const groupKey = String(item.GroupCode ?? "").trim();
+
+                    return (
+                      <div
+                        key={index}
+                        className="rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition"
+                      >
+                        <div className="mb-4">
+                          {/* 🔥 SMALLER TEXT HERE */}
+                          <p className="text-lg font-medium text-slate-500">
+                            Group:{" "}
+                            <span className="text-blue-700 font-bold">
+                              {GROUP_LABEL[groupKey] || groupKey}
+                            </span>
+                          </p>
+                        </div>
+
+                        <div className="space-y-2 text-sm font-medium">
+
+                          <div className="flex justify-between">
+                            <span className="text-slate-700 font-extrabold text-xl">
+                              Proc
+                            </span>
+                            <span className="text-blue-700 font-extrabold text-xl">
+                              {proc.toLocaleString()}
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between">
+                            <span>Moved</span>
+                            <span className="text-green-600">
+                              {moved.toLocaleString()} ({movedPercent}%)
+                            </span>
+                          </div>
+
+                          <div className="flex justify-between">
+                            <span>Scrap</span>
+                            <span className="text-red-600">
+                              {scrap.toLocaleString()} ({scrapPercent}%)
+                            </span>
+                          </div>
+
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                </div>
+
+                {/* BUTTON */}
+                {groupData.length > 5 && (
+                  <div className="flex justify-center mt-4">
+                    <button
+                      onClick={() => setShowAllGroups(!showAllGroups)}
+                      className="px-6 py-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition"
+                    >
+                      {showAllGroups ? "ซ่อนข้อมูล" : "ดูเพิ่มเติม"}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* CHARTS */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="lg:col-span-2">
+              <ProductChartSort startDate={startDate} endDate={endDate} />
+            </div>
+
+            <CategoryChartSort startDate={startDate} endDate={endDate} />
+          </div>
+
+          {/* TABLE */}
+          <ProductTableSort startDate={startDate} endDate={endDate} />
+
         </main>
       </div>
     </div>
   );
 };
 
-export default SortingBis;
+export default sortingbis;

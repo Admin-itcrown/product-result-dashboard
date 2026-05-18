@@ -2,15 +2,15 @@ import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-interface ProductTableFormmProps {
+interface ProductTableBisqueProps {
   startDate?: Date;
   endDate?: Date;
 }
 
-export function ProductTableFormm({
+export function ProductTableBisque({
   startDate,
   endDate,
-}: ProductTableFormmProps = {}) {
+}: ProductTableBisqueProps = {}) {
   const dbProfile = "formming";
 
   const [loading, setLoading] = useState(false);
@@ -63,7 +63,7 @@ export function ProductTableFormm({
         FROM [Db_Formming].[dbo].[Formm_trans]
 
         WHERE [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
-          AND [OP] = 10
+          AND [OP] = 30
 
         GROUP BY
           [Line],
@@ -319,4 +319,4 @@ export function ProductTableFormm({
   );
 }
 
-export default ProductTableFormm;
+export default ProductTableBisque;
