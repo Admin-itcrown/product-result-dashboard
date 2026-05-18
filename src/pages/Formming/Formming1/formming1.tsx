@@ -14,7 +14,7 @@ import {
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { ProductTableFormm } from "./ProductTableFormm";
-import { ProductChartFormming } from "./ProductChartGFormm";
+import { ProductChartFormm } from "./ProductChartGFormm";
 import { CategoryChartFormming } from "./CategoryChartFormm";
 
 /* ===============================
@@ -281,7 +281,7 @@ const Formming1 = () => {
           {/* CHARTS */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div className="lg:col-span-2">
-              <ProductChartFormming startDate={startDate} endDate={endDate} />
+              <ProductChartFormm startDate={startDate} endDate={endDate} />
             </div>
 
             <CategoryChartFormming startDate={startDate} endDate={endDate} />

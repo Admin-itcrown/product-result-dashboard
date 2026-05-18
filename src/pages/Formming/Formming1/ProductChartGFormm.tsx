@@ -52,7 +52,7 @@ const GROUP_NAME_MAP: Record<string, string> = {
   "801-804": "ISO/Non",
 };
 
-export function ProductChartFormming({
+export function ProductChartFormm({
   startDate,
   endDate,
 }: Props) {
