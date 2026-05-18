@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "s": "npm run st",
-    "st": "concurrently \"node server/api.js\" \"npm run dev\"",
+    "st": "concurrently \"node server/api.js\" \"npm run dev -- --port 3001\"",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
