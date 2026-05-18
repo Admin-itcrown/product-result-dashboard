@@ -23,8 +23,8 @@ const CLAY_GROUP_NAMES: Record<string, string> = {
 };
 
 const CLAY_GROUP_COLORS: Record<string, string> = {
-  S: "#ef4444",
-  V: "#2563eb",
+  S: "#0F172A", // Navy Slate
+  V: "#F59E0B", // Amber Gold
 };
 
 // ==============================

@@ -22,18 +22,19 @@ interface Props {
 }
 
 /* =========================
-   COLORS
+   PREMIUM COLORS
 ========================= */
 const COLORS = [
-  "#3B82F6",
+  "#2563EB",
+  "#06B6D4",
+  "#8B5CF6",
   "#10B981",
   "#F59E0B",
-  "#EF4444",
-  "#8B5CF6",
-  "#06B6D4",
   "#EC4899",
-  "#84CC16",
+  "#14B8A6",
   "#F97316",
+  "#6366F1",
+  "#84CC16",
 ];
 
 /* =========================
@@ -172,34 +173,69 @@ export function ProductChartSort({
     const item = payload[0].payload;
 
     return (
-      <div className="bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl shadow-2xl p-4 min-w-[220px]">
-        <div className="font-bold text-slate-800 text-base mb-3">
+      <div className="bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl shadow-xl p-4 min-w-[220px]">
+        <div className="font-black text-slate-800 text-base mb-3">
           {item.name}
         </div>
 
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-slate-500">Proc</span>
-            <span className="font-semibold">
+            <span className="font-bold">
               {item.value.toLocaleString()}
             </span>
           </div>
 
           <div className="flex justify-between">
             <span className="text-emerald-600">Moved</span>
-            <span className="font-semibold">
+            <span className="font-bold">
               {item.moved.toLocaleString()}
             </span>
           </div>
 
           <div className="flex justify-between">
             <span className="text-rose-500">Scrap</span>
-            <span className="font-semibold">
+            <span className="font-bold">
               {item.scrap.toLocaleString()}
             </span>
           </div>
         </div>
       </div>
+    );
+  };
+
+  /* =========================
+     CUSTOM LABEL
+  ========================= */
+  const renderCustomLabel = ({
+    cx,
+    cy,
+    midAngle,
+    outerRadius,
+    percent,
+    name,
+    index,
+  }: any) => {
+    const RADIAN = Math.PI / 180;
+
+    const x =
+      cx + (outerRadius + 16) * Math.cos(-midAngle * RADIAN);
+
+    const y =
+      cy + (outerRadius + 16) * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill={COLORS[index % COLORS.length]}
+        textAnchor={x > cx ? "start" : "end"}
+        dominantBaseline="central"
+        fontSize={11}
+        fontWeight={700}
+      >
+        {`${name} ${(percent * 100).toFixed(1)}%`}
+      </text>
     );
   };
 
@@ -212,7 +248,7 @@ export function ProductChartSort({
               dx="0"
               dy="6"
               stdDeviation="10"
-              floodOpacity="0.15"
+              floodOpacity="0.16"
             />
           </filter>
         </defs>
@@ -221,22 +257,16 @@ export function ProductChartSort({
           data={data}
           dataKey="value"
           nameKey="name"
-          innerRadius={expanded ? 95 : 78}
-          outerRadius={expanded ? 195 : 150}
+          innerRadius={expanded ? 82 : 62}
+          outerRadius={expanded ? 170 : 125}
           paddingAngle={3}
           cornerRadius={10}
           stroke="#fff"
-          strokeWidth={3}
+          strokeWidth={2}
           isAnimationActive
-          animationDuration={800}
+          animationDuration={900}
           labelLine={false}
-          label={({ name, value }) => {
-            const percent = total
-              ? ((value / total) * 100).toFixed(1)
-              : "0";
-
-            return `${name} ${percent}%`;
-          }}
+          label={renderCustomLabel}
         >
           {data.map((_, i) => (
             <Cell
@@ -244,11 +274,14 @@ export function ProductChartSort({
               fill={COLORS[i % COLORS.length]}
               style={{
                 filter: "url(#shadow)",
+                transition: "all 0.3s ease",
+                cursor: "pointer",
               }}
             />
           ))}
         </Pie>
 
+        {/* CENTER TEXT */}
         <text
           x="50%"
           y="50%"
@@ -257,20 +290,20 @@ export function ProductChartSort({
         >
           <tspan
             x="50%"
-            dy="-14"
-            fontSize={expanded ? 16 : 13}
+            dy="-12"
+            fontSize={expanded ? 15 : 11}
             fill="#64748b"
-            fontWeight="600"
+            fontWeight="700"
           >
             TOTAL PROC
           </tspan>
 
           <tspan
             x="50%"
-            dy={expanded ? 30 : 24}
-            fontSize={expanded ? 30 : 24}
+            dy={expanded ? 28 : 22}
+            fontSize={expanded ? 30 : 22}
             fill="#0f172a"
-            fontWeight="800"
+            fontWeight="900"
           >
             {total.toLocaleString()}
           </tspan>
@@ -282,9 +315,10 @@ export function ProductChartSort({
           verticalAlign="bottom"
           iconType="circle"
           wrapperStyle={{
-            paddingTop: 20,
-            fontSize: 13,
-            fontWeight: 600,
+            paddingTop: 12,
+            fontSize: 12,
+            fontWeight: 700,
+            color: "#334155",
           }}
         />
       </PieChart>
@@ -293,31 +327,31 @@ export function ProductChartSort({
 
   return (
     <>
-      {/* =========================
-          CARD
-      ========================= */}
-      <div className="relative overflow-hidden rounded-[30px] border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 shadow-2xl">
+      {/* CARD */}
+      <div className="relative overflow-hidden rounded-[30px] border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-blue-50 shadow-xl">
 
         {/* BG EFFECT */}
-        <div className="absolute top-0 right-0 w-72 h-72 bg-blue-100 rounded-full blur-3xl opacity-30" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-cyan-100 rounded-full blur-3xl opacity-30" />
+        <div className="absolute top-0 right-0 w-60 h-60 bg-cyan-200 rounded-full blur-3xl opacity-20" />
+        <div className="absolute bottom-0 left-0 w-60 h-60 bg-violet-200 rounded-full blur-3xl opacity-20" />
 
-        <div className="relative p-6">
+        <div className="relative p-5">
 
           {/* HEADER */}
           <div className="flex items-start justify-between mb-5">
+
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg">
-                  <Trophy className="text-white" size={22} />
+
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
+                  <Trophy className="text-white" size={20} />
                 </div>
 
                 <div>
-                  <h2 className="text-2xl font-black text-slate-800 tracking-tight">
+                  <h2 className="text-xl font-black text-slate-800 tracking-tight">
                     SortingBis Group Analysis
                   </h2>
 
-                  <p className="text-sm text-slate-500">
+                  <p className="text-xs text-slate-500">
                     Production Overview by Product Group
                   </p>
                 </div>
@@ -325,8 +359,9 @@ export function ProductChartSort({
             </div>
 
             <div className="flex items-center gap-3">
+
               {/* DATE */}
-              <div className="px-4 py-2 rounded-2xl bg-white border border-slate-200 shadow-sm text-sm font-medium text-slate-600">
+              <div className="px-3 py-2 rounded-2xl bg-white border border-slate-200 shadow-sm text-xs font-semibold text-slate-600">
                 {startDate && endDate
                   ? `${format(startDate, "dd/MM/yyyy")} - ${format(
                       endDate,
@@ -338,23 +373,23 @@ export function ProductChartSort({
               {/* FULLSCREEN */}
               <button
                 onClick={() => setOpenModal(true)}
-                className="w-11 h-11 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-sm hover:scale-105 transition"
+                className="w-10 h-10 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-sm hover:scale-105 hover:bg-slate-50 transition"
               >
-                <Maximize2 size={18} />
+                <Maximize2 size={17} />
               </button>
             </div>
           </div>
 
           {/* SUMMARY */}
-          <div className="grid grid-cols-3 gap-4 mb-5">
+          <div className="grid grid-cols-3 gap-3 mb-5">
 
-            <div className="rounded-3xl bg-white border border-slate-200 p-4 shadow-sm">
+            <div className="rounded-2xl bg-white/90 backdrop-blur border border-slate-200 p-4 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-slate-500 text-sm font-medium">
+                <span className="text-slate-500 text-xs font-semibold">
                   Total Proc
                 </span>
 
-                <Package2 className="text-blue-500" size={18} />
+                <Package2 className="text-blue-500" size={16} />
               </div>
 
               <div className="text-2xl font-black text-slate-800">
@@ -362,13 +397,14 @@ export function ProductChartSort({
               </div>
             </div>
 
-            <div className="rounded-3xl bg-white border border-emerald-100 p-4 shadow-sm">
+            <div className="rounded-2xl bg-gradient-to-br from-emerald-50 to-white border border-emerald-100 p-4 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-emerald-600 text-sm font-medium">
+
+                <span className="text-emerald-600 text-xs font-semibold">
                   Total Moved
                 </span>
 
-                <TrendingUp className="text-emerald-500" size={18} />
+                <TrendingUp className="text-emerald-500" size={16} />
               </div>
 
               <div className="text-2xl font-black text-emerald-600">
@@ -376,9 +412,10 @@ export function ProductChartSort({
               </div>
             </div>
 
-            <div className="rounded-3xl bg-white border border-rose-100 p-4 shadow-sm">
+            <div className="rounded-2xl bg-gradient-to-br from-rose-50 to-white border border-rose-100 p-4 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-rose-500 text-sm font-medium">
+
+                <span className="text-rose-500 text-xs font-semibold">
                   Total Scrap
                 </span>
 
@@ -392,9 +429,9 @@ export function ProductChartSort({
           </div>
 
           {/* CHART */}
-          <div className="h-[460px]">
+          <div className="h-[420px]">
             {loading ? (
-              <div className="h-full flex items-center justify-center text-slate-500 text-lg font-medium">
+              <div className="h-full flex items-center justify-center text-slate-500 text-base font-semibold">
                 Loading...
               </div>
             ) : (
@@ -404,19 +441,18 @@ export function ProductChartSort({
         </div>
       </div>
 
-      {/* =========================
-          FULLSCREEN MODAL
-      ========================= */}
+      {/* FULLSCREEN */}
       {openModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-5">
 
-          <div className="relative bg-white w-[96vw] h-[94vh] rounded-[35px] shadow-2xl overflow-hidden">
+          <div className="relative bg-white w-[96vw] h-[94vh] rounded-[32px] shadow-2xl overflow-hidden">
 
             {/* HEADER */}
             <div className="flex items-center justify-between px-8 py-5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
 
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
+
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
                   <Trophy className="text-white" />
                 </div>
 
@@ -431,10 +467,9 @@ export function ProductChartSort({
                 </div>
               </div>
 
-              {/* CLOSE */}
               <button
                 onClick={() => setOpenModal(false)}
-                className="w-12 h-12 rounded-2xl bg-slate-100 hover:bg-slate-200 transition flex items-center justify-center"
+                className="w-11 h-11 rounded-2xl bg-slate-100 hover:bg-slate-200 transition flex items-center justify-center"
               >
                 <X />
               </button>
