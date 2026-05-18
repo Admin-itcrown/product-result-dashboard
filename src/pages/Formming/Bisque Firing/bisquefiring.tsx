@@ -12,7 +12,7 @@ import {
 
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { ProductTableBisq } from "./ProductTableBisq";
+import { ProductTableBisque } from "./ProductTableBisq";
 import { ProductChartBisq } from "./ProductChartBisq";
 import { CategoryChartBisq } from "./CategoryChartBisq";
 
@@ -537,7 +537,7 @@ const bisqueFiring = () => {
               shadow-sm
             "
           >
-            <ProductTableBisq
+            <ProductTableBisque
               startDate={startDate}
               endDate={endDate}
             />
