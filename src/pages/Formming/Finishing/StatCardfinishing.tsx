@@ -110,7 +110,7 @@ export function useFetchGroupSummary(
 ) {
   const [groupData, setGroupData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
+// query to group by itemgroup.code_value1 and sum QtyProc, QtyMoved, QtyScrap for OP=20 and date range
   const GROUP_SQL = `
     SELECT
       CASE
