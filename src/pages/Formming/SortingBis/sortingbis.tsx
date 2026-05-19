@@ -18,7 +18,7 @@ import { ProductChartSort } from "./ProductChartSort";
 import { CategoryChartSort } from "./CategoryChartSort";
 
 /* ===============================
-   GROUP LABEL
+   GROUP LABEL Sorting
 ================================ */
 const GROUP_LABEL: Record<string, string> = {
   "101-104": "MUG",
