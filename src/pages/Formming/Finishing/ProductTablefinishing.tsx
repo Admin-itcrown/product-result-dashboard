@@ -2,15 +2,15 @@ import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-interface ProductTableFinishingProps {
+interface ProductTablefinishingProps {
   startDate?: Date;
   endDate?: Date;
 }
 
-export function ProductTableFinishing({
+export function ProductTablefinishing({
   startDate,
   endDate,
-}: ProductTableFinishingProps = {}) {
+}: ProductTablefinishingProps = {}) {
   const dbProfile = "formming";
 
   const [loading, setLoading] = useState(false);
@@ -319,4 +319,4 @@ export function ProductTableFinishing({
   );
 }
 
-export default ProductTableFinishing;
+export default ProductTablefinishing;
