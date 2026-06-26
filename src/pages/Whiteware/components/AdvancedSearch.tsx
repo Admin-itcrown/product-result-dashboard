@@ -75,6 +75,11 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
         tokenInputRef.current?.focus();
     };
 
+    const handleTokenSearchSubmit = (overrideQuery?: string) => {
+        setShowSuggestions(false);
+        onTokenSearch(overrideQuery ?? tokenQuery);
+    };
+
     const handleTokenKeyDown = (e: React.KeyboardEvent) => {
         if (showSuggestions && suggestions.length > 0) {
             if (e.key === 'ArrowDown') {
@@ -104,8 +109,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
 
         if (e.key === 'Enter') {
             e.preventDefault();
-            setShowSuggestions(false);
-            onTokenSearch(tokenQuery);
+            handleTokenSearchSubmit(tokenQuery);
         }
     };
 
@@ -201,6 +205,7 @@ const AdvancedSearch: React.FC<AdvancedSearchProps> = ({
                         <button
                             onClick={() => { onTokenQueryChange(''); onTokenSearch(''); }}
                             className={`absolute right-2 top-2.5 ${isJapan ? 'text-[#8D6E63] hover:text-[#D64045]' : isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'} transition-colors`}
+                            aria-label="Clear search"
                         >
                             <X className="w-4 h-4" />
                         </button>

@@ -19,6 +19,8 @@ import {
     parseIsoDateToLocal,
     type IsoDateRange
 } from './sharedDateRange';
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { getApiBaseUrl } from '@/lib/api';
 
 type SortColourRow = {
     id?: string;
@@ -294,9 +296,9 @@ const SortColour = () => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const API_BASE_url = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                const apiBaseUrl = (getApiBaseUrl() || 'http://localhost:3001').replace(/\/$/, '');
                 const res = await fetch(
-                    `${API_BASE_url}/api/production-report/summary?startDate=${dateRange.start}&endDate=${dateRange.end}`,
+                    `${apiBaseUrl}/api/production-report/summary?startDate=${dateRange.start}&endDate=${dateRange.end}`,
                     { signal: controller.signal }
                 );
                 if (!res.ok) throw new Error('API Error');
@@ -644,6 +646,7 @@ const SortColour = () => {
         <div className="flex min-h-screen bg-background">
             <DashboardSidebar />
             <div className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
+                <DashboardHeader />
                 <main className={`flex-1 min-w-0 overflow-hidden flex flex-col relative transition-colors duration-500 ${sortdetailsTheme.mainSurface}`}>
                     <div className={`px-4 py-3 w-full shrink-0 border-b shadow-md transition-colors ${sortdetailsTheme.topBar}`}>
                         <div className="max-w-7xl mx-auto flex flex-col gap-3">

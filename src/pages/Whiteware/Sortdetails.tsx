@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as DateCalendar } from "@/components/ui/calendar";
 
 import { buildTokenIndex, searchByTokens, filterByMDoc } from '../../utils/searchUtils';
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import {
     ProductionReport, DefectModal, generateChartData,
     DbItem, AggregatedData, DisplayInfo, CycleData, DefectData,
@@ -106,7 +107,7 @@ const Sortdetails = () => {
     const [mDocQuery, setMDocQuery] = useState<string>('');
     const [advancedSearchActive, setAdvancedSearchActive] = useState<boolean>(false);
     const [advancedResultCount, setAdvancedResultCount] = useState<number | null>(null);
-    const [isSumAllView, setIsSumAllView] = useState<boolean>(false);
+    const [isSumAllView, setIsSumAllView] = useState<boolean>(true);
 
     // Customer Search States
     const [customerInput, setCustomerInput] = useState<string>('');
@@ -242,6 +243,7 @@ const Sortdetails = () => {
                 setRawFilteredData([]);
                 setDbData(baseRows);
                 setAllRawData(data);
+                setIsSumAllView(true);
 
                 // Initialize Search Index
                 const { allTokens: tokens, tokenToRows: index } = buildTokenIndex(baseRows);
@@ -774,7 +776,7 @@ const Sortdetails = () => {
         setTokenQuery('');
         setAdvancedSearchActive(false);
         setAdvancedResultCount(null);
-        setIsSumAllView(false);
+        setIsSumAllView(true);
         setSelectedSystemFilter('ALL');
         setSelectedKilnFilter('ALL');
         setSelectedModelFilter('ALL');
@@ -924,6 +926,7 @@ const Sortdetails = () => {
         <div className="flex min-h-screen bg-background">
             <DashboardSidebar />
             <div className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
+                <DashboardHeader />
                 <main className={`flex-1 min-w-0 overflow-hidden flex flex-col relative font-sans transition-colors duration-500 ${sortdetailsTheme.mainSurface}`}>
                     <style>{`@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } } .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }`}</style>
 

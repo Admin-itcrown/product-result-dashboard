@@ -45,11 +45,16 @@ const matchesPrefixGroup = (itemId: string, selectedPrefix: string): boolean => 
     const itemPrefix = normalizeItemPrefix(normalizedItemId);
     if (!itemPrefix) return false;
 
-    const normalizedSelected = toDisplayPrefixGroup(selectedPrefix.trim());
-    if (normalizedSelected === '142') return PREFIX_GROUP_142.has(itemPrefix);
-    if (normalizedSelected === '143') return PREFIX_GROUP_143.has(itemPrefix);
+    const normalizedSelected = selectedPrefix.trim();
+    if (normalizedSelected === '142') {
+        return ['142', '143'].includes(itemPrefix);
+    }
 
-    return normalizedItemId.startsWith(normalizedSelected);
+    const normalizedGroup = toDisplayPrefixGroup(normalizedSelected);
+    if (normalizedGroup === '142') return PREFIX_GROUP_142.has(itemPrefix);
+    if (normalizedGroup === '143') return PREFIX_GROUP_143.has(itemPrefix);
+
+    return normalizedItemId.startsWith(normalizedGroup);
 };
 
 export const getSortedPrefixes = (data: DbItem[]): string[] => {
@@ -60,6 +65,13 @@ export const getSortedPrefixes = (data: DbItem[]): string[] => {
             prefixes.add(toDisplayPrefixGroup(itemPrefix));
         }
     });
+
+    const has142Or143Group = Array.from(prefixes).some((prefix) => prefix === '142' || prefix === '143');
+    if (has142Or143Group) {
+        prefixes.add('142');
+        prefixes.add('143');
+    }
+
     const prefixArray = Array.from(prefixes).sort();
     const sortedPrefixes: string[] = [];
 

@@ -380,7 +380,7 @@ app.get('{*path}', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
-const port = process.env.API_PORT || 3001;
+const port = process.env.API_PORT || 3002;
 app.listen(port, '0.0.0.0', () => {
   console.log(`API server listening on http://0.0.0.0:${port}`);
   console.log(`LAN access: http://<YOUR-IP>:${port}`);
