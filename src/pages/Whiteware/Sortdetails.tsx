@@ -37,7 +37,6 @@ import {
     formatLocalDateToIso,
     getDatePickerClassNames,
     getDatePickerPanelClass,
-    getEmptyDateRange,
     getTodayDateRange,
     parseIsoDateToLocal,
     type IsoDateRange
@@ -84,10 +83,10 @@ const Sortdetails = () => {
     const [filteredDbData, setRawFilteredData] = useState<DbItem[]>([]);
     const [displayInfo, setDisplayInfo] = useState<DisplayInfo | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
+    const [fetchError, setFetchError] = useState<string | null>(null);
     const [suggestions, setSuggestions] = useState<ItemSearchSuggestion[]>([]);
     const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
-    // Keep committed range empty on first load so page won't auto-fetch until user confirms.
-    const [dateRange, setDateRange] = useState<IsoDateRange>(() => getEmptyDateRange());
+    const [dateRange, setDateRange] = useState<IsoDateRange>(() => getTodayDateRange());
     const [dateRangeDraft, setDateRangeDraft] = useState<IsoDateRange>(() => getTodayDateRange());
     const [startCalendarOpen, setStartCalendarOpen] = useState<boolean>(false);
     const [endCalendarOpen, setEndCalendarOpen] = useState<boolean>(false);
@@ -224,17 +223,16 @@ const Sortdetails = () => {
 
         const fetchData = async () => {
             setLoading(true);
+            setFetchError(null);
 
             try {
-                // Determine API endpoint
-                // Default to 5000 for my-backend
-                const API_BASE_url = (import.meta as any).env.VITE_API_URL || 'http://localhost:5000';
+                const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
                 const res = await fetch(
-                    `${API_BASE_url}/api/production-report/summary?startDate=${dateRange.start}&endDate=${dateRange.end}`,
+                    `${API_BASE_URL}/api/production-report/summary?startDate=${dateRange.start}&endDate=${dateRange.end}`,
                     { signal: controller.signal }
                 );
 
-                if (!res.ok) throw new Error('API Error');
+                if (!res.ok) throw new Error(`API Error: ${res.status}`);
                 const data: DbItem[] = await res.json();
                 if (isCancelled) return;
 
@@ -254,6 +252,14 @@ const Sortdetails = () => {
             } catch (err) {
                 if (err instanceof DOMException && err.name === 'AbortError') return;
                 console.error("Fetch error:", err);
+                if (!isCancelled) {
+                    setFetchError('ไม่สามารถโหลดข้อมูลจากเซิร์ฟเวอร์ได้ กรุณาตรวจสอบว่า API ทำงานอยู่และช่วงวันที่ถูกต้อง');
+                    setDbData([]);
+                    setAllRawData([]);
+                    setRawFilteredData([]);
+                    setDisplayInfo(null);
+                    setAggregatedData(null);
+                }
             } finally {
                 if (!isCancelled) {
                     setLoading(false);
@@ -1202,7 +1208,11 @@ const Sortdetails = () => {
                             {!displayInfo ? (
                                 <div className={`flex flex-col items-center justify-center h-full ${sortdetailsTheme.emptyStateText}`}>
                                     <div className={`w-24 h-24 rounded-full flex items-center justify-center mb-6 ${sortdetailsTheme.emptyStateIconBg}`}><Search className="w-12 h-12" /></div>
-                                    <p className="text-xl text-center">กรอกข้อมูลหรือเลือกวันที่ เพื่อดูรายงานคุณภาพการผลิต</p>
+                                    <p className="text-xl text-center">
+                                        {loading
+                                            ? 'กำลังโหลดข้อมูล...'
+                                            : (fetchError || 'กรอกข้อมูลหรือเลือกวันที่ เพื่อดูรายงานคุณภาพการผลิต')}
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="space-y-6 animate-fade-in pb-16">
