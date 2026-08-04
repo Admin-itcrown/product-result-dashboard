@@ -90,7 +90,7 @@ export function ProductChartGlaze() {
       FROM glaze_trans
 
       WHERE ${whereDate}
-        AND [OP] = 10
+       
 
       GROUP BY ${groupBy}, ${label}
 
@@ -165,16 +165,17 @@ export function ProductChartGlaze() {
   };
 
   const ChartBox = () => (
-    <ResponsiveContainer width="100%" height="100%">
-      <AreaChart
-        data={data}
-        margin={{
-          top: 10,
-          right: 20,
-          left: 55,
-          bottom: 10,
-        }}
-      >
+    <div className="w-full h-full min-h-[420px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart
+          data={data}
+          margin={{
+            top: 10,
+            right: 20,
+            left: 40,
+            bottom: 10,
+          }}
+        >
         <defs>
           <linearGradient
             id="solidGrad"
@@ -308,8 +309,9 @@ export function ProductChartGlaze() {
           fill="url(#totalGrad)"
           strokeWidth={3}
         />
-      </AreaChart>
-    </ResponsiveContainer>
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 
   const yearOptions = Array.from(
@@ -373,7 +375,7 @@ export function ProductChartGlaze() {
           </div>
         </div>
 
-        <div className="h-[380px]">
+        <div className="h-[460px] sm:h-[520px]">
           {loading ? (
             <div className="flex items-center justify-center h-full text-gray-400">
               Loading chart...
@@ -401,7 +403,7 @@ export function ProductChartGlaze() {
               </button>
             </div>
 
-            <div className="flex-1 p-6">
+            <div className="flex-1 p-6 min-h-0">
               <ChartBox />
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { getApiBaseUrl } from './api';
+import { getApiBaseUrl, getApiUrl } from './api';
 
 describe('getApiBaseUrl', () => {
   beforeEach(() => {
@@ -20,5 +20,17 @@ describe('getApiBaseUrl', () => {
     vi.stubEnv('VITE_API_URL', '');
 
     expect(getApiBaseUrl()).toBe('');
+  });
+
+  it('builds relative API URLs by default', () => {
+    vi.stubEnv('VITE_API_URL', '');
+
+    expect(getApiUrl('/query')).toBe('/query');
+  });
+
+  it('prefixes configured API URLs when provided', () => {
+    vi.stubEnv('VITE_API_URL', 'https://example.test');
+
+    expect(getApiUrl('/query')).toBe('https://example.test/query');
   });
 });

@@ -54,7 +54,10 @@ const menuItems: MenuItem[] = [
   {
     icon: BarChart2,
     label: "Glaze",
-    subItems: [{ label: "Glaze", path: "/glaze1" }]
+    subItems: [
+      { label: "Glaze", path: "/glaze1" },
+      { label: "Glaze By Group", path: "/glazebygroup" }
+    ]
   },
 
   {

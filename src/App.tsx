@@ -20,7 +20,8 @@ import Sortdetails from "./pages/Whiteware/Sortdetails";
 import SortColour from "./pages/Whiteware/SortColour";
 import OverAllSort from "./pages/Whiteware/OverAllSort";
 import NotFound from "./pages/NotFound";
-import Glaze1 from "./pages/Glaze/glaze1";
+import Glaze1 from "./pages/Glaze/GlazeTotal/glaze1";
+import GlazebyGroup from "./pages/Glaze/Glaze By Group/GlazebyGroup";
 import Formming from "./pages/Formming/Formming1/formming1";
 
 import Sortingbis from "./pages/Formming/SortingBis/sortingbis";
@@ -57,6 +58,7 @@ const router = createBrowserRouter(
         <Route path="/" element={<Index />} />
         <Route path="/clay1" element={<Clay1 />} />
         <Route path="/glaze1" element={<Glaze1 />} />
+        <Route path="/glazebygroup" element={<GlazebyGroup />} />
         <Route path="/kilnp1" element={<Kilnp1 />} />
         <Route path="/formming1" element={<Formming />} />
         <Route path="/bisquefiring" element={<BisqueFiring />} />
