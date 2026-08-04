@@ -197,6 +197,14 @@ const Sortdetails = () => {
         setDateRange({ ...dateRangeDraft });
     }, [dateRangeDraft, isDateRangeComplete]);
 
+    // Auto-apply date range when both dates are selected
+    useEffect(() => {
+        if (!isDateRangeComplete) return;
+        if (dateRangeDraft.start > dateRangeDraft.end) return;
+        // Apply the date range automatically
+        setDateRange({ ...dateRangeDraft });
+    }, [dateRangeDraft, isDateRangeComplete]);
+
     const handleStartDateSelect = useCallback((date?: Date) => {
         if (!date) return;
         setDateRangeDraft((prev) => ({ ...prev, start: formatLocalDateToIso(date) }));
@@ -1025,18 +1033,7 @@ const Sortdetails = () => {
                                         type="button"
                                         onClick={applyDateRange}
                                         disabled={!canApplyDateRange}
-                                        className={`px-1.5 py-1 rounded-md border transition-colors ${canApplyDateRange
-                                            ? (isJapan
-                                                ? 'bg-[#D64045] hover:bg-[#bf373c] border-[#D64045] text-[#F3EAD3]'
-                                                : (isDark
-                                                    ? 'bg-blue-600 hover:bg-blue-500 border-blue-500 text-white'
-                                                    : 'bg-red-600 hover:bg-red-700 border-red-600 text-white'))
-                                            : (isJapan
-                                                ? 'bg-[#E6D7B5] border-[#C9B992] text-[#8D6E63] cursor-not-allowed'
-                                                : (isDark
-                                                    ? 'bg-gray-700 border-gray-600 text-gray-500 cursor-not-allowed'
-                                                    : 'bg-blue-600 hover:bg-blue-500 border-blue-500 text-white cursor-not-allowed'))
-                                            }`}
+                                        className={`px-1.5 py-1 rounded-md border transition-colors hidden`}
                                         title="Apply date range"
                                         aria-label="Apply date range"
                                     >
@@ -1214,7 +1211,7 @@ const Sortdetails = () => {
                                     <p className="text-xl text-center">
                                         {loading
                                             ? 'กำลังโหลดข้อมูล...'
-                                            : (fetchError || 'กรอกข้อมูลหรือเลือกวันที่ เพื่อดูรายงานคุณภาพการผลิต')}
+                                            : (fetchError || `ยังไม่พบข้อมูลของวันที่ ${dateRange.start} ถึง ${dateRange.end}`)}
                                     </p>
                                 </div>
                             ) : (

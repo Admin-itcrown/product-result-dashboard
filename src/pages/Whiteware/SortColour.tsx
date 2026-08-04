@@ -215,6 +215,12 @@ const formatShortDate = (value?: string): string => {
     return `${day}/${month}/${year.slice(-2)}`;
 };
 
+const formatDateToDayMonthYear = (isoDate: string): string => {
+    if (!isoDate) return '';
+    const [year, month, day] = isoDate.split('-');
+    return `${day}-${month}-${year}`;
+};
+
 const sanitizeReasonText = (reason: string): string => {
     const normalized = reason.replace(/\s+/g, ' ').trim();
     const withoutMarkers = normalized
@@ -269,6 +275,13 @@ const SortColour = () => {
         setDateRange({ ...dateRangeDraft });
     }, [dateRangeDraft, isDateRangeComplete]);
 
+    // Auto-apply date range when both dates are selected
+    useEffect(() => {
+        if (!isDateRangeComplete) return;
+        if (dateRangeDraft.start > dateRangeDraft.end) return;
+        setDateRange({ ...dateRangeDraft });
+    }, [dateRangeDraft, isDateRangeComplete]);
+
     const handleStartDateSelect = useCallback((date?: Date) => {
         if (!date) return;
         setDateRangeDraft((prev) => ({ ...prev, start: formatLocalDateToIso(date) }));
@@ -307,9 +320,8 @@ const SortColour = () => {
                 if (isCancelled) return;
 
                 setRows(data);
-                setResultRows([]);
-                setResultCount(null);
-                setTokenQuery('');
+                setResultRows(data);
+                setResultCount(data.length);
                 setSelectedCycleFilter('ALL');
             } catch (err) {
                 if (err instanceof DOMException && err.name === 'AbortError') return;
@@ -369,8 +381,9 @@ const SortColour = () => {
 
     const runTokenFilter = useCallback((query: string) => {
         if (!query.trim()) {
-            setResultCount(null);
-            setResultRows([]);
+            // Show all data from current cycle when search is empty
+            setResultRows(rowsByCycle);
+            setResultCount(rowsByCycle.length);
             return;
         }
 
@@ -721,28 +734,6 @@ const SortColour = () => {
                                                 />
                                             </PopoverContent>
                                         </Popover>
-
-                                        <button
-                                            type="button"
-                                            onClick={applyDateRange}
-                                            disabled={!canApplyDateRange}
-                                            className={`px-1.5 py-1 rounded-md border transition-colors ${canApplyDateRange
-                                                ? (isJapan
-                                                    ? 'bg-[#D64045] hover:bg-[#bf373c] border-[#D64045] text-[#F3EAD3]'
-                                                    : (isDark
-                                                        ? 'bg-blue-600 hover:bg-blue-500 border-blue-500 text-white'
-                                                        : 'bg-red-600 hover:bg-red-700 border-red-600 text-white'))
-                                                : (isJapan
-                                                    ? 'bg-[#E6D7B5] border-[#C9B992] text-[#8D6E63] cursor-not-allowed'
-                                                    : (isDark
-                                                        ? 'bg-gray-700 border-gray-600 text-gray-500 cursor-not-allowed'
-                                                        : 'bg-blue-600 hover:bg-blue-500 border-blue-500 text-white cursor-not-allowed'))
-                                                }`}
-                                            title="Apply date range"
-                                            aria-label="Apply date range"
-                                        >
-                                            <Check className="w-3 h-3" />
-                                        </button>
                                     </div>
                                     <AdvancedSearch
                                         allTokens={allTokens}
@@ -847,15 +838,11 @@ const SortColour = () => {
                                 </div>
                             ) : !hasLoadedData ? (
                                 <div className={`h-[60vh] flex items-center justify-center ${emptyStateTextClass}`}>
-                                    No data found for selected date range
-                                </div>
-                            ) : resultCount === null ? (
-                                <div className={`h-[60vh] flex items-center justify-center ${emptyStateTextClass}`}>
-                                    Enter token to search
+                                    ยังไม่พบข้อมูลของวันที่ {formatDateToDayMonthYear(dateRange.start)} ถึง {formatDateToDayMonthYear(dateRange.end)}
                                 </div>
                             ) : resultRows.length === 0 ? (
                                 <div className={`h-[60vh] flex items-center justify-center ${emptyStateTextClass}`}>
-                                    No results found for token search
+                                     ยังไม่พบข้อมูลของวันที่ {formatDateToDayMonthYear(dateRange.start)} ถึง {formatDateToDayMonthYear(dateRange.end)}
                                 </div>
                             ) : (
                                 <div className={`h-full w-full overflow-hidden flex flex-col ${tableContainerClass}`}>

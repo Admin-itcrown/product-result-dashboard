@@ -12,8 +12,8 @@ import {
     XCircle
 } from 'lucide-react';
 import {
-    Area,
-    AreaChart,
+    Bar,
+    BarChart,
     CartesianGrid,
     Line,
     LineChart,
@@ -516,7 +516,7 @@ const OverAllSort = () => {
 
     const renderLineChart = (heightClass: string) => (
         <ChartContainer config={lineChartConfig} className={`${heightClass} !aspect-auto w-full`}>
-            <AreaChart data={stackedPercentTrendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <BarChart data={stackedPercentTrendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="hsl(214, 32%, 91%)" />
                 <XAxis
                     dataKey="date"
@@ -574,10 +574,10 @@ const OverAllSort = () => {
                     }}
                 />
                 <ChartLegend content={<ChartLegendContent />} />
-                <Area type="monotone" stackId="total" dataKey="scrap" stroke="var(--color-scrap)" strokeWidth={1.5} fill="var(--color-scrap)" fillOpacity={0.7} isAnimationActive={false} />
-                <Area type="monotone" stackId="total" dataKey="reject" stroke="var(--color-reject)" strokeWidth={1.5} fill="var(--color-reject)" fillOpacity={0.7} isAnimationActive={false} />
-                <Area type="monotone" stackId="total" dataKey="complete" stroke="var(--color-complete)" strokeWidth={1.5} fill="var(--color-complete)" fillOpacity={0.8} isAnimationActive={false} />
-            </AreaChart>
+                <Bar stackId="total" dataKey="scrap" fill="var(--color-scrap)" radius={[2, 2, 0, 0]} maxBarSize={24} isAnimationActive={false} />
+                <Bar stackId="total" dataKey="reject" fill="var(--color-reject)" radius={[2, 2, 0, 0]} maxBarSize={24} isAnimationActive={false} />
+                <Bar stackId="total" dataKey="complete" fill="var(--color-complete)" radius={[2, 2, 0, 0]} maxBarSize={24} isAnimationActive={false} />
+            </BarChart>
         </ChartContainer>
     );
 
@@ -1003,7 +1003,7 @@ const OverAllSort = () => {
                                         <div className={`overall-sort-chart-panel ${panelClass}`}>
                                             <div className="overall-sort-chart-header">
                                                 <div className="font-semibold">
-                                                    Daily 100% Stacked Area ({periodLabel}){smoothingWindow > 1 ? ` - ${smoothingWindow}D MA` : ''}
+                                                    Daily 100% Stacked Bar ({periodLabel}){smoothingWindow > 1 ? ` - ${smoothingWindow}D MA` : ''}
                                                 </div>
                                                 <button
                                                     type="button"
@@ -1055,7 +1055,7 @@ const OverAllSort = () => {
                                 <div className="overall-sort-modal-header">
                                     <div className="font-semibold">
                                         {expandedChart === 'line'
-                                            ? `Daily 100% Stacked Area (${periodLabel})${smoothingWindow > 1 ? ` - ${smoothingWindow}D MA` : ''}`
+                                            ? `Daily 100% Stacked Bar (${periodLabel})${smoothingWindow > 1 ? ` - ${smoothingWindow}D MA` : ''}`
                                             : 'สัดส่วนโดยรวม'}
                                     </div>
                                     <button
