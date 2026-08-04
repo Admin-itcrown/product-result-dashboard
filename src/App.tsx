@@ -13,17 +13,18 @@ import {
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 
 import Index from "./pages/Index";
+import Mold1 from "./pages/Mold/MoldTotal/Moldtotal";
 import Clay1 from "./pages/Clay/clay1";
 import Kilnp1 from "./pages/Kiln/kilnp1";
 import Whitewarep1 from "./pages/Whiteware/Whitewarep1";
 import Sortdetails from "./pages/Whiteware/Sortdetails";
 import SortColour from "./pages/Whiteware/SortColour";
 import OverAllSort from "./pages/Whiteware/OverAllSort";
+
 import NotFound from "./pages/NotFound";
 import Glaze1 from "./pages/Glaze/GlazeTotal/glaze1";
 import GlazebyGroup from "./pages/Glaze/Glaze By Group/GlazebyGroup";
 import Formming from "./pages/Formming/Formming1/formming1";
-
 import Sortingbis from "./pages/Formming/SortingBis/sortingbis";
 import Finishing from "./pages/Formming/Finishing/finishing";
 import BisqueFiring from "./pages/Formming/Bisque Firing/bisquefiring";
@@ -56,6 +57,7 @@ const router = createBrowserRouter(
       {/* ใช้ Layout หลัก */}
       <Route element={<Layout />}>
         <Route path="/" element={<Index />} />
+        <Route path="/mold1" element={<Mold1 />} />
         <Route path="/clay1" element={<Clay1 />} />
         <Route path="/glaze1" element={<Glaze1 />} />
         <Route path="/glazebygroup" element={<GlazebyGroup />} />

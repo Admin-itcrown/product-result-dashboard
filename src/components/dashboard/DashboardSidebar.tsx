@@ -8,7 +8,8 @@ import {
   Settings,
   TrendingUp,
   Boxes,
-  ChevronDown
+  ChevronDown,
+  Hexagon
 } from "lucide-react";
 import logo from "@/icon/icon2.png";
 
@@ -33,6 +34,12 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+
+  {
+    icon: Hexagon,
+    label: "Mold",
+    subItems: [{ label: "Mold", path: "/mold1" }]
+  },
 
   {
     icon: Package,
