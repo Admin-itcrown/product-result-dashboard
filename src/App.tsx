@@ -16,10 +16,9 @@ import Index from "./pages/Index";
 import Mold1 from "./pages/Mold/MoldTotal/Moldtotal";
 import Clay1 from "./pages/Clay/clay1";
 import Kilnp1 from "./pages/Kiln/kilnp1";
-import Whitewarep1 from "./pages/Whiteware/Whitewarep1";
-import Sortdetails from "./pages/Whiteware/Sortdetails";
-import SortColour from "./pages/Whiteware/SortColour";
-import OverAllSort from "./pages/Whiteware/OverAllSort";
+import SortingWW from "./pages/Whiteware/SortingWW/SortingWW";
+import SortingDetail from "./pages/Whiteware/SortingWW/SortingDetail";
+
 
 import NotFound from "./pages/NotFound";
 import Glaze1 from "./pages/Glaze/GlazeTotal/glaze1";
@@ -66,14 +65,9 @@ const router = createBrowserRouter(
         <Route path="/bisquefiring" element={<BisqueFiring />} />
         <Route path="/finishing" element={<Finishing />} />
         <Route path="/sortingbis" element={<Sortingbis />} />
+        <Route path="/sortingww" element={<SortingWW />} />
+        <Route path="/sortingdetail" element={<SortingDetail />} />
 
-
-
-
-        <Route path="/whitewarep1" element={<Whitewarep1 />} />
-        <Route path="/sortdetails" element={<Sortdetails />} />
-        <Route path="/sortcolour" element={<SortColour />} />
-        <Route path="/overallsort" element={<OverAllSort />} />
       </Route>
 
       {/* 404 */}

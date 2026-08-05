@@ -77,10 +77,9 @@ const menuItems: MenuItem[] = [
     icon: BarChart3,
     label: "Sorting Whiteware",
     subItems: [
-      { label: "White ware", path: "/whitewarep1" },
-      { label: "Sort Details", path: "/sortdetails" },
-      { label: "SortColour", path: "/sortcolour" },
-      { label: "OverAllSort", path: "/overallsort" }
+      { label: "Sorting Whiteware", path: "/sortingww" },
+      { label: "Sorting Details", path: "/sortingdetail" },
+
     ]
   },
 
