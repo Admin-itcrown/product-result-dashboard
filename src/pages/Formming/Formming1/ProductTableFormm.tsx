@@ -49,6 +49,8 @@ export function ProductTableFormm({
           [Item],
           [Clay],
           [Description],
+[Description2],
+[Date],
 
           SUM([QtyProc]) AS TotalQtyProc,
           SUM([QtyMoved]) AS TotalQtyMoved,
@@ -69,7 +71,9 @@ export function ProductTableFormm({
           [Line],
           [Item],
           [Clay],
-          [Description]
+          [Description],
+[Description2],
+[Date]
 
         HAVING SUM([QtyProc]) > 0
 
@@ -181,6 +185,15 @@ export function ProductTableFormm({
                     <th className="px-4 py-3 text-left text-xs font-bold">
                       Description
                     </th>
+ <th className="px-4 py-3 text-left text-xs font-bold">
+                      Description2
+                    </th>
+
+ <th className="px-4 py-3 text-left text-xs font-bold">
+                      Date
+                    </th>
+
+
 
                     <th className="px-4 py-3 text-right text-xs font-bold text-blue-600">
                       Proc
@@ -238,6 +251,17 @@ export function ProductTableFormm({
                         <td className="px-4 py-3 text-slate-600 text-sm">
                           {row.Description || "-"}
                         </td>
+ {/* DESCRIPTION */}
+                        <td className="px-4 py-3 text-slate-600 text-sm">
+                          {row.Description2 || "-"}
+                        </td>
+
+ {/* DESCRIPTION */}
+                        <td className="px-4 py-3 text-slate-600 text-sm">
+                          {row.Date ? format(new Date(row.Date), "dd-MM-yyyy") : "-"}
+                        </td>
+
+
 
                         {/* PROC */}
                         <td className="px-4 py-3 text-right text-blue-600 font-medium">

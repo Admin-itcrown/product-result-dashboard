@@ -8,7 +8,8 @@ import { cn } from "@/lib/utils";
 ================================ */
 export function useFetchGlazebyGroupStats(
   startDate: Date | undefined,
-  endDate: Date | undefined
+  endDate: Date | undefined,
+  clayFilter?: string
 ) {
   const [statsData, setStatsData] = useState<any[]>([]);
   const [totals, setTotals] = useState({ totalQtyProc: 0, totalQtyScrap: 0 });
@@ -38,6 +39,11 @@ export function useFetchGlazebyGroupStats(
         const formattedStart = format(startDate, "yyyy-MM-dd");
         const formattedEnd = format(endDate, "yyyy-MM-dd");
 
+        const clayClause =
+          clayFilter && clayFilter !== "ALL"
+            ? ` AND LEFT(g.[Clay],1) = '${clayFilter.replace("'", "''")}' `
+            : "";
+
         const mainQuery = `
           SELECT
             LEFT(ig.code_cmmt1, 3) AS ItemGroup,
@@ -50,13 +56,16 @@ export function useFetchGlazebyGroupStats(
           LEFT JOIN [Db_glaze].[dbo].[itemgroup] AS ig
             ON p.pt_group = ig.code_value1
           WHERE g.[Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
-            AND g.[OP] = 10
             AND g.[Type] = 'BACKFLSH'
+            ${clayClause}
           GROUP BY
             LEFT(ig.code_cmmt1, 3)
           ORDER BY
             ItemGroup
         `;
+
+        console.log("useFetchGlazebyGroupStats fetch params:", { formattedStart, formattedEnd, clayFilter });
+        console.log("Main query:", mainQuery);
 
         const mainResponse = await fetch(`${apiBase}/query`, {
           method: "POST",
@@ -113,7 +122,7 @@ export function useFetchGlazebyGroupStats(
     };
 
     fetchData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, clayFilter]);
 
   return { statsData, totals, categoryTotals, loading };
 }

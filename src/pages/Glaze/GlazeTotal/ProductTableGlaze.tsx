@@ -167,9 +167,19 @@ export function ProductTableGlaze({
     <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
 
       <div className="px-6 py-5 bg-gradient-to-r from-slate-900 to-slate-800">
-        <h3 className="text-xl font-bold text-white">
-          Glaze Total Scrap Records ({rows.length})
-        </h3>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="text-xl font-bold text-white">
+            Glaze Total Scrap Records ({rows.length})
+          </h3>
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={rows.length === 0}
+            className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <FileDown className="h-4 w-4" /> Export to Excel
+          </button>
+        </div>
       </div>
 
       <div className="p-5">
@@ -203,6 +213,7 @@ export function ProductTableGlaze({
                   <th className="p-3">Line</th>
                   <th className="p-3">Item</th>
                   <th className="p-3">Description</th>
+                  <th className="p-3">Description2</th>
                   <th className="p-3">Date</th>
                   <th className="p-3">Clay</th>
                   
@@ -225,6 +236,7 @@ export function ProductTableGlaze({
 
                     <td className="p-3">{row.Line}</td>
                     <td className="p-3">{row.Item}</td>
+                    <td className="p-3">{row.Description}</td>
                     <td className="p-3">{row.Description}</td>
                     <td className="p-3">
                       {row.Date
@@ -290,12 +302,13 @@ export function ProductTableGlaze({
 
                 <ScrollArea className="border rounded-xl h-[65vh]">
                   <table className="w-full">
-                    <thead>
-                      <tr className="bg-slate-100">
+                    <thead className="sticky top-0 z-10 bg-slate-100 shadow-sm">
+                      <tr>
                         <th className="p-3">#</th>
                         <th className="p-3">Line</th>
                         <th className="p-3">Item</th>
                         <th className="p-3">Description</th>
+                        <th className="p-3">Description2</th>
                         <th className="p-3">Date</th>
                         <th className="p-3">Clay</th>
                         <th className="p-3">Glaze</th>
@@ -311,6 +324,7 @@ export function ProductTableGlaze({
                           <td className="p-3">{idx + 1}</td>
                           <td className="p-3">{row.Line}</td>
                           <td className="p-3">{row.Item}</td>
+                          <td className="p-3">{row.Description}</td>
                           <td className="p-3">{row.Description}</td>
                           <td className="p-3">
                             {row.Date ? format(new Date(row.Date), "dd/MM/yyyy") : "-"}

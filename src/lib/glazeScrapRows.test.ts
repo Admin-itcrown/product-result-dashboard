@@ -36,4 +36,24 @@ describe("normalizeGlazeScrapRows", () => {
     expect(rows[0].YscrapPercent).toBe("0.00");
     expect(rows[1].YscrapPercent).toBe("5.00");
   });
+
+  it("supports SumQtyProc/SumQtyScrap aliases from grouped glaze queries", () => {
+    const rows = normalizeGlazeScrapRows([
+      {
+        pt_group: "G1",
+        code_cmmt1: "Desc 1",
+        Clay: "S",
+        Date: "2024-01-01",
+        SumQtyProc: 100,
+        SumQtyMoved: 90,
+        SumQtyScrap: 5,
+        Yscrap: 0.05,
+      },
+    ]);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0].Sumpro).toBe(100);
+    expect(rows[0].Sumscrap).toBe(5);
+    expect(rows[0].YscrapPercent).toBe("5.00");
+  });
 });

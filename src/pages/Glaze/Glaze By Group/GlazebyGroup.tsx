@@ -19,8 +19,13 @@ const GlazebyGroup = () => {
 
   const [showStart, setShowStart] = React.useState(false);
   const [showEnd, setShowEnd] = React.useState(false);
+  const [clayFilter, setClayFilter] = React.useState<string>("ALL");
 
-  const { statsData, loading } = useFetchGlazebyGroupStats(startDate, endDate);
+  const { statsData, loading } = useFetchGlazebyGroupStats(
+    startDate,
+    endDate,
+    clayFilter
+  );
 
   /* =========================
      SUM TOTAL
@@ -184,6 +189,31 @@ const GlazebyGroup = () => {
                 </div>
               )}
             </div>
+            
+            {/* CLAY FILTER BUTTONS */}
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-semibold text-slate-600">Type Clay:</label>
+
+              <div className="flex items-center gap-2">
+                {[
+                  { key: "ALL", label: "ALL" },
+                  { key: "V", label: "ดินขาว" },
+                  { key: "S", label: "ดินดำ" },
+                ].map((b) => (
+                  <button
+                    key={b.key}
+                    onClick={() => setClayFilter(b.key)}
+                    className={`px-3 py-2 rounded-2xl text-sm font-medium transition-shadow ${
+                      clayFilter === b.key
+                        ? "bg-slate-900 text-white shadow"
+                        : "bg-white border border-slate-200 text-slate-700"
+                    }`}
+                  >
+                    {b.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* CARDS */}
@@ -196,16 +226,17 @@ const GlazebyGroup = () => {
           {/* CHARTS */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <ProductChartGlazebyGroup startDate={startDate} endDate={endDate} />
+              <ProductChartGlazebyGroup startDate={startDate} endDate={endDate} clayFilter={clayFilter} />
             </div>
 
-            <CategoryChartGlazebyGroup startDate={startDate} endDate={endDate} />
+            <CategoryChartGlazebyGroup startDate={startDate} endDate={endDate} clayFilter={clayFilter} />
           </div>
 
           {/* TABLE */}
           <ProductTableGlazebyGroup
             startDate={startDate}
             endDate={endDate}
+            clayFilter={clayFilter}
           />
 
         </main>
