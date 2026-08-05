@@ -20,7 +20,9 @@ export function normalizeGlazeScrapRows(rows: any[] = []) {
         row.QtyScrap ??
         row.TotalQtyScrap ??
         0;
-      const yscrap = row.Yscrap ?? 0;
+      const yscrap =
+        row.Yscrap ??
+        (Number(sumpro) > 0 ? Number(sumScrap) / Number(sumpro) : 0);
 
       return {
         ...row,

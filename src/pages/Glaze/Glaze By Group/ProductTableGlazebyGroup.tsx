@@ -69,7 +69,8 @@ export function ProductTableGlazebyGroup({
             ON p.pt_part = g.Item
         WHERE g.[date] >= '${formattedStart}'
           AND g.[date] <= '${formattedEnd}'
-          AND g.type = 'BACKFLSH'
+
+          AND g.[Type] = 'BACKFLSH'
           ${clayClause}
         GROUP BY
             p.pt_group,
@@ -77,7 +78,7 @@ export function ProductTableGlazebyGroup({
             g.Clay,
             g.[Date]
         ORDER BY
-            g.[Date] DESC,
+            g.[Date] ,
             p.pt_group ASC
       `;
 
@@ -107,6 +108,18 @@ export function ProductTableGlazebyGroup({
   const displayedRows = rows.slice(0, 10);
   const rowStartIndex = 0;
 
+  const formatNumber = (value: any) =>
+    Number(value ?? 0).toLocaleString();
+
+  const formatPercent = (value: any) => {
+    const numberValue = Number(value ?? 0);
+    if (Number.isNaN(numberValue)) return "0.00%";
+    return `${numberValue.toFixed(2)}%`;
+  };
+
+  const formatDateCell = (value: any) =>
+    value ? format(new Date(value), "dd/MM/yyyy") : "-";
+
   const selectedDateText = (() => {
     const today = new Date();
     const start = startDate || today;
@@ -134,21 +147,21 @@ export function ProductTableGlazebyGroup({
       "Comment/Description",
       "Clay",
       "Date",
-      "SumQtyProc",
-      "SumQtyMoved",
-      "SumQtyScrap",
-      "YscrapPercent",
+      "Proc",
+      "Moved",
+      "Scrap",
+      "Scrap%",
     ];
 
     const csvRows = rows.map((row) => [
       row.pt_group,
       row.code_cmmt1,
       row.Clay,
-      row.Date ? format(new Date(row.Date), "dd/MM/yyyy") : "",
+      row.Date ? formatDateCell(row.Date) : "",
       row.SumQtyProc ?? "",
       row.SumQtyMoved ?? "",
       row.SumQtyScrap ?? "",
-      row.YscrapPercent ?? "",
+      formatPercent(row.YscrapPercent),
     ]);
 
     const csvContent = [headers, ...csvRows]
@@ -171,9 +184,19 @@ export function ProductTableGlazebyGroup({
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
       <div className="px-6 py-5 bg-gradient-to-r from-slate-900 to-slate-800">
-        <h3 className="text-xl font-bold text-white">
-          Glaze Total Scrap Records by Group ({rows.length})
-        </h3>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="text-xl font-bold text-white">
+            Glaze Total Scrap Records by Group ({rows.length})
+          </h3>
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            disabled={rows.length === 0}
+            className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <FileDown className="h-4 w-4" /> Export to Excel
+          </button>
+        </div>
       </div>
 
       <div className="p-5">
@@ -193,43 +216,43 @@ export function ProductTableGlazebyGroup({
 
         {!loading && displayedRows.length > 0 && (
           <ScrollArea className="border rounded-xl">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-100">
-                  <th className="p-3">#</th>
-                  <th className="p-3">Group</th>
-                  <th className="p-3">Description</th>
-                  <th className="p-3">Clay</th>
-                  <th className="p-3">Date</th>
-                  <th className="p-3 text-right text-blue-600">Proc</th>
-                  <th className="p-3 text-right text-green-600">Moved</th>
-                  <th className="p-3 text-right text-rose-600">Scrap</th>
-                  <th className="p-3 text-right text-rose-600">Scrap%</th>
+            <table className="w-full table-fixed min-w-full text-sm">
+              <thead className="sticky top-0 z-10 bg-slate-100 shadow-sm">
+                <tr>
+                  <th className="w-12 p-3 text-left">#</th>
+                  <th className="w-24 p-3 text-left">Group</th>
+                  <th className="w-[280px] p-3 text-left">Description</th>
+                  <th className="w-24 p-3 text-left">Clay</th>
+                  <th className="w-28 p-3 text-left">Date</th>
+                  <th className="w-28 p-3 text-right text-blue-600">Proc</th>
+                  <th className="w-28 p-3 text-right text-green-600">Moved</th>
+                  <th className="w-28 p-3 text-right text-rose-600">Scrap</th>
+                  <th className="w-28 p-3 text-right text-rose-600">Scrap%</th>
                 </tr>
               </thead>
               <tbody>
                 {displayedRows.map((row, idx) => (
                   <tr key={idx} className="border-b">
-                    <td className="p-3">{rowStartIndex + idx + 1}</td>
-                    <td className="p-3 font-medium">{row.pt_group}</td>
-                    <td className="p-3">{row.code_cmmt1}</td>
-                    <td className="p-3">{row.Clay}</td>
-                    <td className="p-3">
+                    <td className="w-12 p-3 text-left">{rowStartIndex + idx + 1}</td>
+                    <td className="w-24 p-3 text-left font-medium">{row.pt_group}</td>
+                    <td className="w-[280px] p-3 text-left">{row.code_cmmt1}</td>
+                    <td className="w-24 p-3 text-left">{row.Clay}</td>
+                    <td className="w-28 p-3 text-left">
                       {row.Date
                         ? format(new Date(row.Date), "dd/MM/yyyy")
                         : "-"}
                     </td>
-                    <td className="p-3 text-right text-blue-600">
-                      {Number(row.SumQtyProc || 0).toLocaleString()}
+                    <td className="w-28 p-3 text-right text-blue-600">
+                      {formatNumber(row.SumQtyProc)}
                     </td>
-                    <td className="p-3 text-right text-green-600">
-                      {Number(row.SumQtyMoved || 0).toLocaleString()}
+                    <td className="w-28 p-3 text-right text-green-600">
+                      {formatNumber(row.SumQtyMoved)}
                     </td>
-                    <td className="p-3 text-right text-rose-600">
-                      {Number(row.SumQtyScrap || 0).toLocaleString()}
+                    <td className="w-28 p-3 text-right text-rose-600">
+                      {formatNumber(row.SumQtyScrap)}
                     </td>
-                    <td className="p-3 text-right font-bold">
-                      {row.YscrapPercent}%
+                    <td className="w-28 p-3 text-right font-bold">
+                      {formatPercent(row.YscrapPercent)}
                     </td>
                   </tr>
                 ))}
@@ -270,43 +293,43 @@ export function ProductTableGlazebyGroup({
                 </div>
 
                 <ScrollArea className="border rounded-xl h-[65vh]">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="bg-slate-100">
-                        <th className="p-3">#</th>
-                        <th className="p-3">Group</th>
-                        <th className="p-3">Description</th>
-                        <th className="p-3">Clay</th>
-                        <th className="p-3">Date</th>
-                        <th className="p-3 text-right text-blue-600">Proc</th>
-                        <th className="p-3 text-right text-green-600">Moved</th>
-                        <th className="p-3 text-right text-rose-600">Scrap</th>
-                        <th className="p-3 text-right text-rose-600">Scrap%</th>
+                  <table className="w-full table-fixed min-w-full text-sm">
+                    <thead className="sticky top-0 z-10 bg-slate-100 shadow-sm">
+                      <tr>
+                        <th className="w-12 p-3 text-left">#</th>
+                        <th className="w-24 p-3 text-left">Group</th>
+                        <th className="w-[280px] p-3 text-left">Description</th>
+                        <th className="w-24 p-3 text-left">Clay</th>
+                        <th className="w-28 p-3 text-left">Date</th>
+                        <th className="w-28 p-3 text-right text-blue-600">Proc</th>
+                        <th className="w-28 p-3 text-right text-green-600">Moved</th>
+                        <th className="w-28 p-3 text-right text-rose-600">Scrap</th>
+                        <th className="w-28 p-3 text-right text-rose-600">Scrap%</th>
                       </tr>
                     </thead>
                     <tbody>
                       {rows.map((row, idx) => (
                         <tr key={idx} className="border-b">
-                          <td className="p-3">{idx + 1}</td>
-                          <td className="p-3 font-medium">{row.pt_group}</td>
-                          <td className="p-3">{row.code_cmmt1}</td>
-                          <td className="p-3">{row.Clay}</td>
-                          <td className="p-3">
+                          <td className="w-12 p-3 text-left">{idx + 1}</td>
+                          <td className="w-24 p-3 text-left font-medium">{row.pt_group}</td>
+                          <td className="w-[280px] p-3 text-left">{row.code_cmmt1}</td>
+                          <td className="w-24 p-3 text-left">{row.Clay}</td>
+                          <td className="w-28 p-3 text-left">
                             {row.Date
                               ? format(new Date(row.Date), "dd/MM/yyyy")
                               : "-"}
                           </td>
-                          <td className="p-3 text-right text-blue-600">
-                            {Number(row.SumQtyProc || 0).toLocaleString()}
+                          <td className="w-28 p-3 text-right text-blue-600">
+                            {formatNumber(row.SumQtyProc)}
                           </td>
-                          <td className="p-3 text-right text-green-600">
-                            {Number(row.SumQtyMoved || 0).toLocaleString()}
+                          <td className="w-28 p-3 text-right text-green-600">
+                            {formatNumber(row.SumQtyMoved)}
                           </td>
-                          <td className="p-3 text-right text-rose-600">
-                            {Number(row.SumQtyScrap || 0).toLocaleString()}
+                          <td className="w-28 p-3 text-right text-rose-600">
+                            {formatNumber(row.SumQtyScrap)}
                           </td>
-                          <td className="p-3 text-right font-bold">
-                            {row.YscrapPercent}%
+                          <td className="w-28 p-3 text-right font-bold">
+                            {formatPercent(row.YscrapPercent)}
                           </td>
                         </tr>
                       ))}
