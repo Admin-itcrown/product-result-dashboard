@@ -5,15 +5,15 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { FileDown } from "lucide-react";
 import { normalizeGlazeScrapRows } from "@/lib/glazeScrapRows";
 
-interface ProductTableMoldProps {
+interface ProductTableWWProps  {
   startDate?: Date;
   endDate?: Date;
 }
 
-export function ProductTableMold({
+export function ProductTableWW({
   startDate,
   endDate,
-}: ProductTableMoldProps = {}) {
+}: ProductTableWWProps = {}) {
   const dbProfile = "glaze";
 
   const [loading, setLoading] = useState(false);
@@ -335,4 +335,4 @@ export function ProductTableMold({
   );
 }
 
-export default ProductTableMold;
+export default ProductTableWW;

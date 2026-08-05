@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import { Maximize2, X } from "lucide-react";
 
-export function ProductChartMold() {
+export function ProductChartWW() {
   const today = new Date();
 
   const [mode, setMode] = useState("month");

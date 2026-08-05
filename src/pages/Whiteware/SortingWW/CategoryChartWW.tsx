@@ -55,7 +55,7 @@ const renderActiveShape = (props: any) => {
   );
 };
 
-export function CategoryChartMold({
+export function CategoryChartWW({
   startDate,
   endDate,
 }: any) {
