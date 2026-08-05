@@ -8,11 +8,13 @@ import { normalizeGlazeScrapRows } from "@/lib/glazeScrapRows";
 interface ProductTableGlazebyGroupProps {
   startDate?: Date;
   endDate?: Date;
+  clayFilter?: string;
 }
 
 export function ProductTableGlazebyGroup({
   startDate,
   endDate,
+  clayFilter,
 }: ProductTableGlazebyGroupProps = {}) {
   const dbProfile = "glaze";
 
@@ -23,7 +25,7 @@ export function ProductTableGlazebyGroup({
 
   useEffect(() => {
     fetchData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, clayFilter]);
 
   async function fetchData() {
     setLoading(true);
@@ -45,7 +47,12 @@ export function ProductTableGlazebyGroup({
       const formattedStart = format(startDate || today, "yyyy-MM-dd");
       const formattedEnd = format(endDate || today, "yyyy-MM-dd");
 
-      const query = `
+        const clayClause =
+          clayFilter && clayFilter !== "ALL"
+            ? ` AND LEFT(g.[Clay],1) = '${clayFilter.replace("'", "''")}' `
+            : "";
+
+        const query = `
         SELECT 
             p.pt_group,
             i.code_cmmt1,
@@ -63,6 +70,7 @@ export function ProductTableGlazebyGroup({
         WHERE g.[date] >= '${formattedStart}'
           AND g.[date] <= '${formattedEnd}'
           AND g.type = 'BACKFLSH'
+          ${clayClause}
         GROUP BY
             p.pt_group,
             i.code_cmmt1,
@@ -72,6 +80,9 @@ export function ProductTableGlazebyGroup({
             g.[Date] DESC,
             p.pt_group ASC
       `;
+
+      console.log("ProductTable fetch params:", { formattedStart, formattedEnd, clayFilter });
+      console.log("ProductTable query:", query);
 
       const res = await fetch(`${apiBase}/query`, {
         method: "POST",

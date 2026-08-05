@@ -26,6 +26,14 @@ const CLAY_GROUP_COLORS: Record<string, string> = {
   V: "#06B6D4",
 };
 
+// specific subcodes colors
+const CLAY_SUB_COLORS: Record<string, string> = {
+  SDB: "#EF4444",
+  SHA: "#F97316",
+  VBB: "#06B6D4",
+  VCB: "#3B82F6",
+};
+
 // ==============================
 // Hover Shape
 // ==============================
@@ -58,6 +66,7 @@ const renderActiveShape = (props: any) => {
 export function CategoryChartGlazebyGroup({
   startDate,
   endDate,
+  clayFilter,
 }: any) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,80 +93,99 @@ export function CategoryChartGlazebyGroup({
                   )
                 : null;
       
-              let query = `
-                SELECT 
-                  LEFT([Clay],1) AS ClayGroup,
-                  SUM([QtyProc]) AS TotalQtyProc
-                FROM [Db_glaze].[dbo].[glaze_trans]
-              `;
-      
-              if (startStr && endStr) {
-                query += `
-                  WHERE [Date] BETWEEN '${startStr}' AND '${endStr}' AND [OP]=10
+              let query = "";
+
+              if (clayFilter && clayFilter !== "ALL") {
+                // when filtering a specific clay type, group by first 3 chars (subtype)
+                query = `
+                  SELECT
+                    LEFT([Clay],3) AS ClayGroup,
+                    SUM([QtyProc]) AS TotalQtyProc
+                  FROM [Db_glaze].[dbo].[glaze_trans]
+                `;
+              } else {
+                // overall grouping by clay type (first char)
+                query = `
+                  SELECT
+                    LEFT([Clay],1) AS ClayGroup,
+                    SUM([QtyProc]) AS TotalQtyProc
+                  FROM [Db_glaze].[dbo].[glaze_trans]
                 `;
               }
       
-              query += `
-                GROUP BY LEFT([Clay],1)
-                ORDER BY ClayGroup
-              `;
-      
-              const response =
-                await fetch("/query", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type":
-                      "application/json",
-                  },
-                  body: JSON.stringify({
-                    query,
-                    db: "glaze",
-                  }),
-                });
+              const whereClauses: string[] = [];
+
+              if (startStr && endStr) {
+                whereClauses.push(`[Date] BETWEEN '${startStr}' AND '${endStr}' AND [OP]=10`);
+              }
+
+              if (clayFilter && clayFilter !== "ALL") {
+                whereClauses.push(`LEFT([Clay],1) = '${clayFilter.replace("'", "''")}'`);
+              }
+
+              if (whereClauses.length > 0) {
+                query += ` WHERE ${whereClauses.join(" AND ")}`;
+              }
+
+              // append GROUP BY / ORDER BY according to grouping level
+              if (clayFilter && clayFilter !== "ALL") {
+                query += `
+                  GROUP BY LEFT([Clay],3)
+                  ORDER BY ClayGroup
+                `;
+              } else {
+                query += `
+                  GROUP BY LEFT([Clay],1)
+                  ORDER BY ClayGroup
+                `;
+              }
+
+              console.log("CategoryChart fetch params:", { startStr, endStr, clayFilter });
+              console.log("CategoryChart query:", query);
+
+              const response = await fetch("/query", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  query,
+                  db: "glaze",
+                }),
+              });
       
               if (!response.ok) {
-                throw new Error(
-                  "Load data failed"
-                );
+                const text = await response.text().catch(() => "");
+                console.error("CategoryChart fetch failed", response.status, text);
+                throw new Error(`Load data failed: ${response.status} ${text}`);
               }
+
+              const result = await response.json();
       
-              const result =
-                await response.json();
+              const transformed = (result.recordset || []).map((item: any) => {
+                const code = (item.ClayGroup || "").toString();
+                const codeKey = code.toUpperCase();
+                const prefix = (codeKey || "").charAt(0);
+                const name = code;
+                const color = CLAY_SUB_COLORS[codeKey] || CLAY_GROUP_COLORS[prefix] || "#8884d8";
+
+                return {
+                  code,
+                  name,
+                  value: item.TotalQtyProc || 0,
+                  color,
+                };
+              });
       
-              const transformed =
-                result.recordset?.map(
-                  (item: any) => {
-                    const code =
-                      item.ClayGroup;
-      
-                    return {
-                      code: code,
-                      name:
-                        CLAY_GROUP_NAMES[
-                          code
-                        ] || code,
-                      value:
-                        item.TotalQtyProc ||
-                        0,
-                      color:
-                        CLAY_GROUP_COLORS[
-                          code
-                        ] || "#8884d8",
-                    };
-                  }
-                ) || [];
-      
-              // Sort to show ดินขาว (V) first, then ดินดำ (S)
-              const sorted = transformed.sort(
-                (a: any, b: any) => {
-                  const order: Record<string, number> = {
-                    "V": 0, // ดินขาว first
-                    "S": 1, // ดินดำ second
-                  };
-                  return (order[a.code] ?? 2) - (order[b.code] ?? 2);
+              // If overall view, keep order V then S; if subtype view, sort by code
+              const sorted = transformed.sort((a: any, b: any) => {
+                if (!clayFilter || clayFilter === "ALL") {
+                  const order: Record<string, number> = { V: 0, S: 1 };
+                  return (order[(a.code || "").charAt(0)] ?? 2) - (order[(b.code || "").charAt(0)] ?? 2);
                 }
-              );
-      
+                return (a.code || "").localeCompare(b.code || "");
+              });
+
               setData(sorted);
             } catch (err) {
               setError(
@@ -169,7 +197,7 @@ export function CategoryChartGlazebyGroup({
     };
 
     fetchData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, clayFilter]);
 
   const total = data.reduce(
     (sum, item) => sum + item.value,

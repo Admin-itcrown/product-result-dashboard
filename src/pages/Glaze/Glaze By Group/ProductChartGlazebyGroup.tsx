@@ -19,6 +19,7 @@ import { format } from "date-fns";
 interface Props {
   startDate?: Date;
   endDate?: Date;
+  clayFilter?: string;
 }
 
 /* =========================
@@ -41,6 +42,7 @@ const COLORS = [
 export function ProductChartGlazebyGroup({
   startDate,
   endDate,
+  clayFilter,
 }: Props) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,12 +55,17 @@ export function ProductChartGlazebyGroup({
   useEffect(() => {
     if (!startDate || !endDate) return;
     fetchData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, clayFilter]);
 
   const formatDate = (d?: Date) =>
     d ? format(d, "yyyy-MM-dd") : "";
 
   const fetchData = async () => {
+    const clayClause =
+      clayFilter && clayFilter !== "ALL"
+        ? ` AND LEFT(g.[Clay],1) = '${clayFilter.replace("'", "''")}' `
+        : "";
+
     const query = `
       SELECT
         COALESCE(LEFT(ig.code_cmmt1, 3), 'Unknown') AS ItemGroup,
@@ -72,12 +79,14 @@ export function ProductChartGlazebyGroup({
         ON p.pt_group = ig.code_value1
       WHERE g.[Date] BETWEEN '${formatDate(startDate)}' AND '${formatDate(endDate)}'
         AND g.[Type] = 'BACKFLSH'
+        ${clayClause}
       GROUP BY
         COALESCE(LEFT(ig.code_cmmt1, 3), 'Unknown')
       ORDER BY
         ItemGroup
     `;
 
+    console.log("ProductChart fetch params:", { startDate, endDate, clayFilter });
     console.log("Start Date:", startDate);
     console.log("End Date:", endDate);
     console.log("Formatted Start:", formatDate(startDate));
