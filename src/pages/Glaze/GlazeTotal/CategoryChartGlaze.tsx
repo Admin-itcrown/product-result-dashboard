@@ -93,7 +93,7 @@ export function CategoryChartGlaze({
       
               if (startStr && endStr) {
                 query += `
-                  WHERE [Date] BETWEEN '${startStr}' AND '${endStr}' AND [OP]=10
+                  WHERE [Date] BETWEEN '${startStr}' AND '${endStr}' 
                 `;
               }
       

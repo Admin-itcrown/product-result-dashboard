@@ -54,32 +54,33 @@ export function ProductTableGlazebyGroup({
 
         const query = `
         SELECT 
-            p.pt_group,
-            i.code_cmmt1,
-            g.Clay,
-            g.[Date],
-            SUM(g.QtyProc)    AS SumQtyProc,
-            SUM(g.QtyMoved)   AS SumQtyMoved,
-            SUM(g.QtyScrap)   AS SumQtyScrap,
-            CAST(SUM(g.QtyScrap) AS DECIMAL(18,6)) / NULLIF(SUM(g.QtyProc), 0) AS Yscrap
-        FROM pt_mstr AS p
-        INNER JOIN itemgroup AS i
-            ON p.pt_group = i.code_value1
-        INNER JOIN glaze_trans AS g
-            ON p.pt_part = g.Item
-        WHERE g.[date] >= '${formattedStart}'
-          AND g.[date] <= '${formattedEnd}'
-
-          AND g.[Type] = 'BACKFLSH'
-          ${clayClause}
-        GROUP BY
-            p.pt_group,
-            i.code_cmmt1,
-            g.Clay,
-            g.[Date]
-        ORDER BY
-            g.[Date] ,
-            p.pt_group ASC
+    p.pt_group,
+    i.code_cmmt1,
+    g.Description,
+    g.Clay,
+    g.[Date],
+    SUM(g.QtyProc)    AS SumQtyProc,
+    SUM(g.QtyMoved)   AS SumQtyMoved,
+    SUM(g.QtyScrap)   AS SumQtyScrap,
+    CAST(SUM(g.QtyScrap) AS DECIMAL(18,6)) / NULLIF(SUM(g.QtyProc), 0) AS Yscrap
+FROM pt_mstr AS p
+INNER JOIN itemgroup AS i
+    ON p.pt_group = i.code_value1
+INNER JOIN glaze_trans AS g
+    ON p.pt_part = g.Item
+WHERE g.[Date] >= '${formattedStart}'
+  AND g.[Date] <= '${formattedEnd}'
+  AND g.[Type] = 'BACKFLSH'
+  ${clayClause}
+GROUP BY
+    p.pt_group,
+    i.code_cmmt1,
+    g.Description,
+    g.Clay,
+    g.[Date]
+ORDER BY
+    g.[Date],
+    p.pt_group ASC;
       `;
 
       console.log("ProductTable fetch params:", { formattedStart, formattedEnd, clayFilter });
@@ -144,7 +145,8 @@ export function ProductTableGlazebyGroup({
 
     const headers = [
       "Group",
-      "Comment/Description",
+      "Name Group",
+      "Description",
       "Clay",
       "Date",
       "Proc",
@@ -221,6 +223,7 @@ export function ProductTableGlazebyGroup({
                 <tr>
                   <th className="w-12 p-3 text-left">#</th>
                   <th className="w-24 p-3 text-left">Group</th>
+                  <th className="w-[150px] p-3 text-left">Name Group</th>
                   <th className="w-[280px] p-3 text-left">Description</th>
                   <th className="w-24 p-3 text-left">Clay</th>
                   <th className="w-28 p-3 text-left">Date</th>
@@ -235,7 +238,8 @@ export function ProductTableGlazebyGroup({
                   <tr key={idx} className="border-b">
                     <td className="w-12 p-3 text-left">{rowStartIndex + idx + 1}</td>
                     <td className="w-24 p-3 text-left font-medium">{row.pt_group}</td>
-                    <td className="w-[280px] p-3 text-left">{row.code_cmmt1}</td>
+                    <td className="w-[150px] p-3 text-left">{row.code_cmmt1}</td>
+                    <td className="w-[280px] p-3 text-left">{row.Description}</td>
                     <td className="w-24 p-3 text-left">{row.Clay}</td>
                     <td className="w-28 p-3 text-left">
                       {row.Date
@@ -298,6 +302,7 @@ export function ProductTableGlazebyGroup({
                       <tr>
                         <th className="w-12 p-3 text-left">#</th>
                         <th className="w-24 p-3 text-left">Group</th>
+                        <th className="w-[150px] p-3 text-left">Name Group</th>
                         <th className="w-[280px] p-3 text-left">Description</th>
                         <th className="w-24 p-3 text-left">Clay</th>
                         <th className="w-28 p-3 text-left">Date</th>
@@ -312,7 +317,8 @@ export function ProductTableGlazebyGroup({
                         <tr key={idx} className="border-b">
                           <td className="w-12 p-3 text-left">{idx + 1}</td>
                           <td className="w-24 p-3 text-left font-medium">{row.pt_group}</td>
-                          <td className="w-[280px] p-3 text-left">{row.code_cmmt1}</td>
+                          <td className="w-[150px] p-3 text-left">{row.code_cmmt1}</td>
+                          <td className="w-[280px] p-3 text-left">{row.Description}</td>
                           <td className="w-24 p-3 text-left">{row.Clay}</td>
                           <td className="w-28 p-3 text-left">
                             {row.Date

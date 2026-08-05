@@ -192,7 +192,7 @@ const GlazebyGroup = () => {
             
             {/* CLAY FILTER BUTTONS */}
             <div className="flex items-center gap-3">
-              <label className="text-sm font-semibold text-slate-600">ดิน:</label>
+              <label className="text-sm font-semibold text-slate-600">Type Clay:</label>
 
               <div className="flex items-center gap-2">
                 {[
