@@ -30,8 +30,8 @@ const CLAY_GROUP_COLORS: Record<string, string> = {
 const CLAY_SUB_COLORS: Record<string, string> = {
   SDB: "#EF4444",
   SHA: "#F97316",
-  VBB: "#06B6D4",
-  VCB: "#3B82F6",
+  VBB: "#07693b",
+  VCB: "#5e6403",
 };
 
 // ==============================
@@ -166,7 +166,10 @@ export function CategoryChartGlazebyGroup({
                 const code = (item.ClayGroup || "").toString();
                 const codeKey = code.toUpperCase();
                 const prefix = (codeKey || "").charAt(0);
-                const name = code;
+                // When overall view (ALL), map first-char group codes to friendly Thai names
+                const name = (!clayFilter || clayFilter === "ALL")
+                  ? (CLAY_GROUP_NAMES[prefix] || code)
+                  : code;
                 const color = CLAY_SUB_COLORS[codeKey] || CLAY_GROUP_COLORS[prefix] || "#8884d8";
 
                 return {
