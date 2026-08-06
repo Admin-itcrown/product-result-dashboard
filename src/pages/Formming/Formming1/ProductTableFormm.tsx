@@ -160,6 +160,8 @@ export function ProductTableFormm({
     URL.revokeObjectURL(url);
   };
 
+  const isExportDisabled = loading || !rows || rows.length === 0;
+
   const totalPages = Math.ceil(rows.length / pageSize);
 
   const pagedRows = rows.slice(
@@ -185,7 +187,8 @@ export function ProductTableFormm({
         <div>
           <button
             onClick={exportToCsv}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            disabled={isExportDisabled}
+            className={`px-4 py-2 bg-blue-600 text-white rounded-lg ${isExportDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
           >
             Export to Excel
           </button>
