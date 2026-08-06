@@ -56,7 +56,7 @@ export function ProductTableGlazebyGroup({
         SELECT 
     p.pt_group,
     i.code_cmmt1,
-    g.Description,
+    g.Line,
     g.Clay,
     g.[Date],
     SUM(g.QtyProc)    AS SumQtyProc,
@@ -75,7 +75,7 @@ WHERE g.[Date] >= '${formattedStart}'
 GROUP BY
     p.pt_group,
     i.code_cmmt1,
-    g.Description,
+    g.Line,
     g.Clay,
     g.[Date]
 ORDER BY
@@ -224,7 +224,7 @@ ORDER BY
                   <th className="w-12 p-3 text-left">#</th>
                   <th className="w-24 p-3 text-left">Group</th>
                   <th className="w-[150px] p-3 text-left">Name Group</th>
-                  <th className="w-[280px] p-3 text-left">Description</th>
+                  <th className="w-[150px] p-3 text-left">Production Line</th>
                   <th className="w-24 p-3 text-left">Clay</th>
                   <th className="w-28 p-3 text-left">Date</th>
                   <th className="w-28 p-3 text-right text-blue-600">Proc</th>
@@ -239,7 +239,7 @@ ORDER BY
                     <td className="w-12 p-3 text-left">{rowStartIndex + idx + 1}</td>
                     <td className="w-24 p-3 text-left font-medium">{row.pt_group}</td>
                     <td className="w-[150px] p-3 text-left">{row.code_cmmt1}</td>
-                    <td className="w-[280px] p-3 text-left">{row.Description}</td>
+                    <td className="w-[150px] p-3 text-left">{row.Line}</td>
                     <td className="w-24 p-3 text-left">{row.Clay}</td>
                     <td className="w-28 p-3 text-left">
                       {row.Date
@@ -303,7 +303,7 @@ ORDER BY
                         <th className="w-12 p-3 text-left">#</th>
                         <th className="w-24 p-3 text-left">Group</th>
                         <th className="w-[150px] p-3 text-left">Name Group</th>
-                        <th className="w-[280px] p-3 text-left">Description</th>
+                        <th className="w-[150px] p-3 text-left">Production Line</th>
                         <th className="w-24 p-3 text-left">Clay</th>
                         <th className="w-28 p-3 text-left">Date</th>
                         <th className="w-28 p-3 text-right text-blue-600">Proc</th>
@@ -318,7 +318,7 @@ ORDER BY
                           <td className="w-12 p-3 text-left">{idx + 1}</td>
                           <td className="w-24 p-3 text-left font-medium">{row.pt_group}</td>
                           <td className="w-[150px] p-3 text-left">{row.code_cmmt1}</td>
-                          <td className="w-[280px] p-3 text-left">{row.Description}</td>
+                          <td className="w-[150px] p-3 text-left">{row.Line}</td>
                           <td className="w-24 p-3 text-left">{row.Clay}</td>
                           <td className="w-28 p-3 text-left">
                             {row.Date
