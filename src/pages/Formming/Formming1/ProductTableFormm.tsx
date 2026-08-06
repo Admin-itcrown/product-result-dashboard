@@ -107,6 +107,59 @@ export function ProductTableFormm({
     }
   }
 
+  const exportToCsv = () => {
+    if (!rows || rows.length === 0) return;
+
+    const headers = [
+      "Line",
+      "Item",
+      "Clay",
+      "Description",
+      "Description2",
+      "Date",
+      "Proc",
+      "Moved",
+      "Scrap Qty",
+      "Scrap %",
+    ];
+
+    const lines = rows.map((r) => {
+      const date = r.Date ? format(new Date(r.Date), "dd/MM/yyyy") : "";
+      const lineVal = r.Line ? r.Line.slice(2, 5) : "";
+
+      const escape = (v: any) => {
+        if (v === null || v === undefined) return "";
+        return String(v).replace(/"/g, '""');
+      };
+
+      return [
+        `"${escape(lineVal)}"`,
+        `"${escape(r.Item)}"`,
+        `"${escape(r.Clay)}"`,
+        `"${escape(r.Description)}"`,
+        `"${escape(r.Description2)}"`,
+        `"${escape(date)}"`,
+        Number(r.TotalQtyProc || 0),
+        Number(r.TotalQtyMoved || 0),
+        Number(r.TotalQtyScrap || 0),
+        `${Number(r.ScrapPercent || 0).toFixed(2)}%`,
+      ].join(",");
+    });
+
+    const csv = [headers.join(','), ...lines].join('\n');
+
+    // prepend BOM so Excel opens UTF-8 CSV correctly
+    const blob = new Blob(["\uFEFF", csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `scrap-analysis_${format(new Date(), 'yyyyMMdd_HHmmss')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const totalPages = Math.ceil(rows.length / pageSize);
 
   const pagedRows = rows.slice(
@@ -118,14 +171,25 @@ export function ProductTableFormm({
     <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
 
       {/* HEADER */}
-      <div className="px-6 py-5 bg-gradient-to-r from-slate-900 to-slate-800">
-        <h3 className="text-xl font-bold text-white">
-          Scrap Analysis Dashboard
-        </h3>
+      <div className="px-6 py-5 bg-gradient-to-r from-slate-900 to-slate-800 flex items-center justify-between">
+        <div>
+          <h3 className="text-xl font-bold text-white">
+            Scrap Analysis Dashboard
+          </h3>
 
-        <p className="text-sm text-slate-300 mt-1">
-          Line / Item / Clay / Description / Production
-        </p>
+          <p className="text-sm text-slate-300 mt-1">
+            Line / Item / Clay / Description / Production
+          </p>
+        </div>
+
+        <div>
+          <button
+            onClick={exportToCsv}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Export to Excel
+          </button>
+        </div>
       </div>
 
       <div className="p-5">
@@ -258,7 +322,7 @@ export function ProductTableFormm({
 
  {/* DESCRIPTION */}
                         <td className="px-4 py-3 text-slate-600 text-sm">
-                          {row.Date ? format(new Date(row.Date), "dd-MM-yyyy") : "-"}
+                          {row.Date ? format(new Date(row.Date), "dd/MM/yyyy") : "-"}
                         </td>
 
 
