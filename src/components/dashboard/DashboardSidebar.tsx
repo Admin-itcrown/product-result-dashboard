@@ -9,7 +9,8 @@ import {
   TrendingUp,
   Boxes,
   ChevronDown,
-  Hexagon
+  Hexagon,
+  Stamp
 } from "lucide-react";
 import logo from "@/icon/icon2.png";
 
@@ -77,9 +78,17 @@ const menuItems: MenuItem[] = [
     icon: BarChart3,
     label: "Sorting Whiteware",
     subItems: [
-      { label: "Sorting Whiteware", path: "/sortingww" },
-      { label: "Sorting Details", path: "/sortingdetail" },
+      { label: "Sorting Whiteware", path: "/sortoverview" },
+      { label: "Sorting Details", path: "/sortdetail" },
 
+    ]
+  },
+
+  {
+    icon: Stamp,
+    label: "Decorate Ware",
+    subItems: [
+      { label: "Stamp", path: "/stamp1" }
     ]
   },
 
