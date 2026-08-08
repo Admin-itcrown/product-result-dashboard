@@ -280,7 +280,7 @@ export function ProductChartGlazebyGroup({
 
                 <div>
                   <h2 className="text-2xl font-black text-slate-800 tracking-tight">
-                    Glaze Group Analysis
+                    Glaze By Group Analysis
                   </h2>
 
                   <p className="text-sm text-slate-500">

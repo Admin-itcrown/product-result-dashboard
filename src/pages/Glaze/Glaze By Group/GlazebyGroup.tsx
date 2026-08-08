@@ -12,6 +12,7 @@ import { ProductTableGlazebyGroup } from "./ProductTableGlazebyGroup";
 
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { ProductionPlanSummary } from "@/components/dashboard/ProductionPlanSummary";
 
 const GlazebyGroup = () => {
   const [startDate, setStartDate] = React.useState<Date | undefined>(new Date());
@@ -215,29 +216,61 @@ const GlazebyGroup = () => {
               </div>
             </div>
           </div>
-
-          {/* CARDS */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-            {stats.map((s, i) => (
-              <StatCardGlazebyGroup key={i} {...s} />
-            ))}
-          </div>
-
-          {/* CHARTS */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <ProductChartGlazebyGroup startDate={startDate} endDate={endDate} clayFilter={clayFilter} />
-            </div>
-
-            <CategoryChartGlazebyGroup startDate={startDate} endDate={endDate} clayFilter={clayFilter} />
-          </div>
-
-          {/* TABLE */}
-          <ProductTableGlazebyGroup
+          {/* <Tableplaning
             startDate={startDate}
             endDate={endDate}
             clayFilter={clayFilter}
-          />
+          /> */}
+
+          <section className="rounded-3xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 p-5 shadow-lg shadow-blue-100/60 sm:p-6">
+            <div className="mb-5 flex items-center gap-3 border-b border-blue-200/80 pb-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-violet-600 text-white shadow-md shadow-blue-300/70">
+                <Factory size={24} />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-blue-950">Glaze Plan</h2>
+                <p className="mt-0.5 text-sm text-blue-700/80">เปรียบเทียบยอดผลิตจริงกับแผนที่กำหนด</p>
+              </div>
+            </div>
+            <ProductionPlanSummary
+              actual={totalProc}
+              storageKey="glaze-by-group-production-plan"
+            />
+          </section>
+
+          <section className="rounded-3xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 via-cyan-50 to-sky-50 p-5 shadow-lg shadow-emerald-100/60 sm:p-6">
+            <div className="mb-5 flex items-center gap-3 border-b border-emerald-200/80 pb-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 text-white shadow-md shadow-emerald-300/70">
+                <Boxes size={24} />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-emerald-950">Data Glaze By Group</h2>
+                <p className="mt-0.5 text-sm text-emerald-700/80">รายละเอียดผลผลิตแยกตามกลุ่มสินค้า</p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+                {stats.map((s, i) => (
+                  <StatCardGlazebyGroup key={i} {...s} />
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <ProductChartGlazebyGroup startDate={startDate} endDate={endDate} clayFilter={clayFilter} />
+                </div>
+
+                <CategoryChartGlazebyGroup startDate={startDate} endDate={endDate} clayFilter={clayFilter} />
+              </div>
+
+              <ProductTableGlazebyGroup
+                startDate={startDate}
+                endDate={endDate}
+                clayFilter={clayFilter}
+              />
+            </div>
+          </section>
 
         </main>
       </div>
