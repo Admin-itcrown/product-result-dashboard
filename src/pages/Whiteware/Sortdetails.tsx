@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as DateCalendar } from "@/components/ui/calendar";
 
 import { buildTokenIndex, searchByTokens, filterByMDoc } from '../../utils/searchUtils';
+import { getApiUrl } from '@/lib/api';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import {
     ProductionReport, DefectModal, generateChartData,
@@ -235,9 +236,8 @@ const Sortdetails = () => {
             setFetchError(null);
 
             try {
-                const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
                 const res = await fetch(
-                    `${API_BASE_URL}/api/production-report/summary?startDate=${dateRange.start}&endDate=${dateRange.end}`,
+                    getApiUrl(`/api/production-report/summary?startDate=${dateRange.start}&endDate=${dateRange.end}`),
                     { signal: controller.signal }
                 );
 
