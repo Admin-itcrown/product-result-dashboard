@@ -16,6 +16,7 @@ import Index from "./pages/Index";
 import Mold1 from "./pages/Mold/MoldTotal/Moldtotal";
 import Clay1 from "./pages/Clay/clay1";
 import Kilnp1 from "./pages/Kiln/kilnp1";
+import KilnQuality from "./pages/Kiln/kilnQuality";
 import Sortdetail from "./pages/Whiteware/Sortdetails";
 import SortOverview from "./pages/Whiteware/OverAllSort";
 import SortingWW from "./pages/Whiteware/SortingWW/SortingWW";
@@ -63,6 +64,7 @@ const router = createBrowserRouter(
         <Route path="/glaze1" element={<Glaze1 />} />
         <Route path="/glazebygroup" element={<GlazebyGroup />} />
         <Route path="/kilnp1" element={<Kilnp1 />} />
+        <Route path="/kilnquality" element={<KilnQuality />} />
         <Route path="/formming1" element={<Formming />} />
         <Route path="/bisquefiring" element={<BisqueFiring />} />
         <Route path="/finishing" element={<Finishing />} />

@@ -5,6 +5,11 @@ import sql from 'mssql';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { defaultProfile, allowedProfiles, getPoolForProfile, profiles, getPoolKeyForProfile } from './dbClient.js';
+import {
+  fetchInGlazeRows,
+  filterInGlazeByDate,
+  getInGlazeMaxDate,
+} from './inGlazeSheet.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -292,6 +297,72 @@ app.post('/query', async (req, res) => {
       return res.status(504).json({ error: 'DB request timeout', detail: String(err) });
     }
     res.status(500).json({ error: String(err) });
+  }
+});
+
+/** In-Glaze Firing daily totals from Google Sheet */
+app.get('/api/in-glaze', async (req, res) => {
+  try {
+    const startDate = String(req.query.start || '').slice(0, 10);
+    const endDate = String(req.query.end || '').slice(0, 10);
+    const force = String(req.query.refresh || '') === '1';
+
+    const { rows: allRows, cached, fetchedAt } = await fetchInGlazeRows({ force });
+    const maxDate = getInGlazeMaxDate(allRows);
+    const rows = filterInGlazeByDate(
+      allRows,
+      /^\d{4}-\d{2}-\d{2}$/.test(startDate) ? startDate : undefined,
+      /^\d{4}-\d{2}-\d{2}$/.test(endDate) ? endDate : undefined
+    );
+
+    const byKiln = {};
+    let total = 0;
+    let dayShift = 0;
+    let nightShift = 0;
+    const dates = new Set();
+    for (const r of rows) {
+      total += r.total;
+      dayShift += r.dayShift;
+      nightShift += r.nightShift;
+      dates.add(r.date);
+      if (!byKiln[r.kiln]) {
+        byKiln[r.kiln] = { kiln: r.kiln, dayShift: 0, nightShift: 0, total: 0, days: new Set() };
+      }
+      byKiln[r.kiln].dayShift += r.dayShift;
+      byKiln[r.kiln].nightShift += r.nightShift;
+      byKiln[r.kiln].total += r.total;
+      byKiln[r.kiln].days.add(r.date);
+    }
+
+    const kilnSummary = Object.values(byKiln)
+      .map((k) => ({
+        kiln: k.kiln,
+        dayShift: k.dayShift,
+        nightShift: k.nightShift,
+        total: k.total,
+        dayCount: k.days.size,
+        avgPerDay: k.days.size > 0 ? Math.round(k.total / k.days.size) : 0,
+      }))
+      .sort((a, b) => b.total - a.total);
+
+    res.json({
+      ok: true,
+      cached,
+      fetchedAt,
+      maxDate,
+      startDate: startDate || null,
+      endDate: endDate || null,
+      dayCount: dates.size,
+      total,
+      dayShift,
+      nightShift,
+      avgPerDay: dates.size > 0 ? Math.round(total / dates.size) : 0,
+      kilnSummary,
+      rows,
+    });
+  } catch (err) {
+    console.error('In-Glaze sheet error:', err && err.message ? err.message : err);
+    res.status(500).json({ ok: false, error: String(err && err.message ? err.message : err) });
   }
 });
 

@@ -2,278 +2,177 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { Flame, Calendar, RefreshCw } from "lucide-react";
 import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { ProdStatCard } from "./StatCardKiln";
-import { CategoryChartKiln } from "./CategoryChartKiln";
-import { TypeRatioChart } from "./TypeRatioChart";
-import { ProductChartKiln } from "./ProductChartKiln";
-import { QualitySection } from "./QualitySection";
+import { cn } from "@/lib/utils";
+import { toDateStr } from "./KilnDashboardStyles";
+import type { GlazeProductionRecord } from "./KilnDashboardStyles";
 import {
-  KILN_WKCTR_MAP,
-  FORMM_WKCTR_MAP,
-  CATEGORY_COLORS,
-  resolveKilnName,
-  getApiBase,
-  toDateStr,
-} from "./KilnDashboardStyles";
-import type {
-  KilnProductionRecord,
-  QualityRecord,
-  WeeklyQualityRecord,
-  MonthlyData,
-  TypeRatioData,
-} from "./KilnDashboardStyles";
+  queryDB,
+  buildGlazeKilnSQL,
+  transformGlazeKilnData,
+  fetchInGlazeData,
+} from "./kilnApi";
+import {
+  GlazeKpiStrip,
+  ClayRatioPanel,
+  FireRatioPanel,
+  PieceShapePanel,
+  KilnFiringTable,
+} from "./GlazeProductionPanels";
+import { type InGlazePayload } from "./InGlazePanel";
 
-// ─── API fetcher ───
-async function queryDB(sql: string, db: string) {
-  const res = await fetch(`${getApiBase()}/query`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: sql, db }),
-  });
-  if (!res.ok) throw new Error(`Query failed: ${res.statusText}`);
-  const json = await res.json();
-  return json.recordset || [];
+type PeriodMode = "Daily" | "Weekly" | "Monthly";
+
+function parseDateOnly(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
 }
 
-// ─── Build SQL queries ───
-function buildKilnSQL(startDate: string, endDate: string) {
-  return `
-    SELECT
-      Wkctr,
-      LEFT(Item, 3) AS ItemPrefix,
-      LEFT(Doc, 1) AS DocType,
-      FORMAT(Date, 'yyyy-MM-dd') AS trx_date,
-      SUM(QtyProc) AS QtyProc,
-      SUM(QtyMoved) AS QtyMoved,
-      SUM(QtyScrap) AS QtyScrap,
-      SUM(QtyReject) AS QtyReject
-    FROM Kiln_trans
-    WHERE Date >= '${startDate}' AND Date <= '${endDate}'
-      AND (Item LIKE '142%' OR Item LIKE '143%')
-    GROUP BY Wkctr, LEFT(Item, 3), LEFT(Doc, 1), FORMAT(Date, 'yyyy-MM-dd')
-  `;
+/** Display yyyy-mm-dd as dd-mm-yyyy */
+function formatDMY(iso: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  const [y, m, d] = iso.split("-");
+  return `${d}-${m}-${y}`;
 }
 
-function buildFormmSQL(startDate: string, endDate: string) {
-  return `
-    SELECT
-      Wkctr,
-      LEFT(Doc, 1) AS DocType,
-      FORMAT(Date, 'yyyy-MM-dd') AS trx_date,
-      SUM(QtyProc) AS QtyProc,
-      SUM(QtyMoved) AS QtyMoved,
-      SUM(QtyScrap) AS QtyScrap,
-      SUM(QtyReject) AS QtyReject
-    FROM Formm_trans
-    WHERE OP = '30'
-      AND Date >= '${startDate}' AND Date <= '${endDate}'
-    GROUP BY Wkctr, LEFT(Doc, 1), FORMAT(Date, 'yyyy-MM-dd')
-  `;
+function getISOWeek(iso: string): number {
+  const source = parseDateOnly(iso);
+  const date = new Date(Date.UTC(source.getFullYear(), source.getMonth(), source.getDate()));
+  const day = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 }
 
-function buildQualitySQL(startDate: string, endDate: string) {
-  return `
-    WITH base AS (
-      SELECT
-        m_doc, m_date, m_kiln, m_part,
-        CASE
-          WHEN MAX(CASE WHEN m_user LIKE 'somboon%' AND UPPER(RTRIM(LTRIM(m_cp))) = 'C' THEN 1 ELSE 0 END) = 1
-          THEN 'Cs'
-          ELSE UPPER(RTRIM(LTRIM(m_cp)))
-        END AS computed_cp,
-        MAX(qtyp) AS qtyp,
-        MAX(qtycomp) AS qtycomp,
-        MAX(qtyscrp) AS qtyscrp,
-        MAX(qtyrjct) AS qtyrjct
-      FROM v_rpt_sort
-      WHERE m_date >= '${startDate}' AND m_date <= '${endDate}'
-        AND m_kiln NOT IN ('DK1T','REWORK')
-      GROUP BY m_doc, m_date, m_kiln, m_part, UPPER(RTRIM(LTRIM(m_cp)))
-    )
-    SELECT
-      m_kiln,
-      CASE WHEN m_part LIKE '142%' THEN 'WW' WHEN m_part LIKE '143%' THEN 'DW' END AS wareType,
-      computed_cp,
-      SUM(qtyp) AS totalQtyp,
-      SUM(qtycomp) AS totalQtycomp,
-      SUM(qtyscrp) AS totalScrap,
-      SUM(qtyrjct) AS totalReject
-    FROM base
-    WHERE m_part LIKE '142%' OR m_part LIKE '143%'
-    GROUP BY m_kiln,
-      CASE WHEN m_part LIKE '142%' THEN 'WW' WHEN m_part LIKE '143%' THEN 'DW' END,
-      computed_cp
-  `;
+function getWeekLabel(start: string, end: string): string {
+  const startWeek = getISOWeek(start);
+  const endWeek = getISOWeek(end);
+  return startWeek === endWeek ? `W${startWeek}` : `W${startWeek}–W${endWeek}`;
 }
 
-function buildWeeklyQualitySQL(endDate: string) {
-  // Fetch last 56 days (8 weeks) of daily quality data
-  return `
-    WITH base AS (
-      SELECT
-        m_doc, m_date, m_kiln, m_part,
-        CASE
-          WHEN MAX(CASE WHEN m_user LIKE 'somboon%' AND UPPER(RTRIM(LTRIM(m_cp))) = 'C' THEN 1 ELSE 0 END) = 1
-          THEN 'Cs'
-          ELSE UPPER(RTRIM(LTRIM(m_cp)))
-        END AS computed_cp,
-        MAX(qtyp) AS qtyp,
-        MAX(qtycomp) AS qtycomp,
-        MAX(qtyscrp) AS qtyscrp,
-        MAX(qtyrjct) AS qtyrjct
-      FROM v_rpt_sort
-      WHERE m_date >= DATEADD(DAY, -55, '${endDate}') AND m_date <= '${endDate}'
-        AND (m_part LIKE '142%' OR m_part LIKE '143%')
-        AND m_kiln NOT IN ('DK1T','REWORK')
-      GROUP BY m_doc, m_date, m_kiln, m_part, UPPER(RTRIM(LTRIM(m_cp)))
-    )
-    SELECT
-      m_kiln,
-      computed_cp,
-      CAST(m_date AS DATE) AS trx_date,
-      SUM(qtyp) AS totalQtyp,
-      SUM(qtycomp) AS totalQtycomp,
-      SUM(qtyscrp) AS totalScrap,
-      SUM(qtyrjct) AS totalReject
-    FROM base
-    GROUP BY m_kiln, computed_cp, CAST(m_date AS DATE)
-    ORDER BY trx_date
-  `;
+function lastDayOfMonth(year: number, monthIndex0: number): number {
+  return new Date(year, monthIndex0 + 1, 0).getDate();
 }
 
-// ─── Transform data ───
-function transformKilnData(rows: Record<string, unknown>[]): KilnProductionRecord[] {
-  const results: KilnProductionRecord[] = [];
-  for (const r of rows) {
-    const kilnName = resolveKilnName(String(r.Wkctr ?? ''), KILN_WKCTR_MAP);
-    if (!kilnName) continue;
-    const category = r.ItemPrefix === '142' ? 'Glaze' : r.ItemPrefix === '143' ? 'Decal' : null;
-    if (!category) continue;
-    results.push({
-      kilnName,
-      category,
-      docType: r.DocType === 'D' ? 'Normal' : 'Repair',
-      trx_date: String(r.trx_date ?? ''),
-      qtyProc: Number(r.QtyProc) || 0,
-      qtyMoved: Number(r.QtyMoved) || 0,
-      qtyScrap: Number(r.QtyScrap) || 0,
-      qtyReject: Number(r.QtyReject) || 0,
-    });
+/** Default ranges anchored on today */
+function getDefaultRange(period: PeriodMode, today = new Date()): { start: string; end: string } {
+  const end = toDateStr(today);
+  if (period === "Daily") {
+    return { start: end, end };
   }
-  return results;
-}
-
-function transformFormmData(rows: Record<string, unknown>[]): KilnProductionRecord[] {
-  const results: KilnProductionRecord[] = [];
-  for (const r of rows) {
-    const kilnName = resolveKilnName(String(r.Wkctr ?? ''), FORMM_WKCTR_MAP);
-    if (!kilnName) continue;
-    results.push({
-      kilnName,
-      category: 'Biscuit',
-      docType: r.DocType === 'D' ? 'Normal' : 'Repair',
-      trx_date: String(r.trx_date ?? ''),
-      qtyProc: Number(r.QtyProc) || 0,
-      qtyMoved: Number(r.QtyMoved) || 0,
-      qtyScrap: Number(r.QtyScrap) || 0,
-      qtyReject: Number(r.QtyReject) || 0,
-    });
+  if (period === "Monthly") {
+    const start = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+    return { start, end };
   }
-  return results;
+  // Weekly: last 7 days inclusive (today - 6 → today)
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  start.setDate(start.getDate() - 6);
+  return { start: toDateStr(start), end };
 }
 
-// ─── Main Page Component ───
+function monthKeyFromIso(iso: string): string {
+  return iso.slice(0, 7); // yyyy-mm
+}
+
+function rangeFromMonthKey(ym: string, todayIso: string): { start: string; end: string } {
+  const [y, m] = ym.split("-").map(Number);
+  const start = `${y}-${String(m).padStart(2, "0")}-01`;
+  const last = lastDayOfMonth(y, m - 1);
+  const monthEnd = `${y}-${String(m).padStart(2, "0")}-${String(last).padStart(2, "0")}`;
+  // If selected month is current month, end at today
+  const end = monthEnd > todayIso ? todayIso : monthEnd;
+  return { start, end };
+}
+
+function periodTitle(period: PeriodMode): string {
+  if (period === "Daily") return "Daily";
+  if (period === "Monthly") return "Monthly";
+  return "Weekly";
+}
+
+const dateInputClass =
+  "h-7 rounded-md border border-border bg-background px-1.5 text-[11px] text-foreground tabular-nums focus:outline-none focus:ring-1 focus:ring-primary";
+
 export default function KilnP1() {
-  const [startDate] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-01-01`;
-  });
-  const [endDate] = useState(() => toDateStr(new Date()));
-
-  const [productionData, setProductionData] = useState<KilnProductionRecord[]>([]);
-  const [qualityData, setQualityData] = useState<QualityRecord[]>([]);
-  const [weeklyQuality, setWeeklyQuality] = useState<WeeklyQualityRecord[]>([]);
+  const todayIso = toDateStr(new Date());
+  const [period, setPeriod] = useState<PeriodMode>("Weekly");
+  const [startDate, setStartDate] = useState(() => getDefaultRange("Weekly").start);
+  const [endDate, setEndDate] = useState(() => getDefaultRange("Weekly").end);
+  const [productionData, setProductionData] = useState<GlazeProductionRecord[]>([]);
+  const [inGlaze, setInGlaze] = useState<InGlazePayload | null>(null);
+  const [inGlazeError, setInGlazeError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const applyPeriodDefaults = useCallback((mode: PeriodMode) => {
+    const range = getDefaultRange(mode);
+    setStartDate(range.start);
+    setEndDate(range.end);
+  }, []);
+
+  const handlePeriodChange = (mode: PeriodMode) => {
+    setPeriod(mode);
+    applyPeriodDefaults(mode);
+  };
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setInGlazeError(null);
     try {
-      const [kilnRows, formmRows, qualityRows, weeklyRows] = await Promise.all([
-        queryDB(buildKilnSQL(startDate, endDate), 'kiln'),
-        queryDB(buildFormmSQL(startDate, endDate), 'formming'),
-        queryDB(buildQualitySQL(startDate, endDate), 'sorting'),
-        queryDB(buildWeeklyQualitySQL(endDate), 'sorting'),
+      const rangeStart = startDate <= endDate ? startDate : endDate;
+      const rangeEnd = startDate <= endDate ? endDate : startDate;
+
+      const [rows, inGlazeData] = await Promise.all([
+        queryDB(buildGlazeKilnSQL(rangeStart, rangeEnd), "kiln"),
+        fetchInGlazeData(rangeStart, rangeEnd, true).catch((err: unknown) => {
+          const msg = err instanceof Error ? err.message : String(err);
+          setInGlazeError(msg);
+          return null;
+        }),
       ]);
-      const kilnProd = transformKilnData(kilnRows);
-      const formmProd = transformFormmData(formmRows);
-      setProductionData([...kilnProd, ...formmProd]);
-      setQualityData(qualityRows);
-      setWeeklyQuality(weeklyRows.map((r: Record<string, unknown>) => ({
-        m_kiln: String(r.m_kiln ?? ''),
-        computed_cp: String(r.computed_cp ?? ''),
-        trx_date: String(r.trx_date ?? '').slice(0, 10),
-        totalQtyp: Number(r.totalQtyp) || 0,
-        totalQtycomp: Number(r.totalQtycomp) || 0,
-        totalScrap: Number(r.totalScrap) || 0,
-        totalReject: Number(r.totalReject) || 0,
-      })));
+
+      setProductionData(transformGlazeKilnData(rows));
+      if (inGlazeData?.ok) setInGlaze(inGlazeData);
+      else setInGlaze(null);
     } catch (err: unknown) {
-      console.error('Kiln Dashboard fetch error:', err);
-      setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการดึงข้อมูล');
+      console.error("Kiln Production fetch error:", err);
+      setError(err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการดึงข้อมูล");
     } finally {
       setLoading(false);
     }
   }, [startDate, endDate]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
-  // ─── Derived state ───
-  const categoryTotals = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const r of productionData) map.set(r.category, (map.get(r.category) || 0) + r.qtyProc);
-    return ['Biscuit', 'Glaze', 'Decal'].map(cat => ({
-      name: cat,
-      value: map.get(cat) || 0,
-      color: CATEGORY_COLORS[cat],
-    }));
-  }, [productionData]);
-
-  const totalYTD = useMemo(() => categoryTotals.reduce((s, c) => s + c.value, 0), [categoryTotals]);
-
-  const topKilns = useMemo(() => {
-    const kilnMap = new Map<string, Map<string, number>>();
+  const totals = useMemo(() => {
+    let total = 0;
+    const white = { total: 0, glaze: 0, repair: 0 };
+    const black = { total: 0, glaze: 0, repair: 0 };
     for (const r of productionData) {
-      let catMap = kilnMap.get(r.category);
-      if (!catMap) { catMap = new Map(); kilnMap.set(r.category, catMap); }
-      catMap.set(r.kilnName, (catMap.get(r.kilnName) || 0) + r.qtyProc);
+      total += r.qtyProc;
+      const bucket = r.clayKind === "white" ? white : r.clayKind === "black" ? black : null;
+      if (!bucket) continue;
+      bucket.total += r.qtyProc;
+      if (r.fireKind === "glaze") bucket.glaze += r.qtyProc;
+      else bucket.repair += r.qtyProc;
     }
-    const result: Record<string, { name: string; qty: number }> = {};
-    for (const cat of ['Biscuit', 'Glaze', 'Decal']) {
-      const catMap = kilnMap.get(cat);
-      if (!catMap || catMap.size === 0) { result[cat] = { name: '-', qty: 0 }; continue; }
-      let best = { name: '-', qty: 0 };
-      catMap.forEach((qty, name) => { if (qty > best.qty) best = { name, qty }; });
-      result[cat] = best;
-    }
-    return result;
+    return { total, white, black };
   }, [productionData]);
 
-  const typeRatio = useMemo(() => {
-    const calc = (category: string): TypeRatioData => {
-      let normal = 0, repair = 0;
-      for (const r of productionData) {
-        if (r.category !== category) continue;
-        if (r.docType === 'Normal') normal += r.qtyProc;
-        else repair += r.qtyProc;
-      }
-      return { normal, repair, total: normal + repair };
-    };
-    return { glaze: calc('Glaze'), decal: calc('Decal') };
-  }, [productionData]);
+  const dayCount = useMemo(() => {
+    const start = parseDateOnly(startDate <= endDate ? startDate : endDate);
+    const end = parseDateOnly(startDate <= endDate ? endDate : startDate);
+    const diff = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+    return Math.max(1, diff);
+  }, [startDate, endDate]);
 
-
+  const rangeLabel =
+    startDate === endDate
+      ? formatDMY(startDate)
+      : `${formatDMY(startDate)} → ${formatDMY(endDate)}`;
+  const weekLabel = getWeekLabel(startDate, endDate);
 
   return (
     <div className="min-h-screen flex w-full bg-background">
@@ -281,38 +180,129 @@ export default function KilnP1() {
       <main className="flex-1 overflow-y-auto min-w-0">
         <DashboardHeader />
 
-        {/* Page Header */}
         <div className="px-6 pt-4 pb-3 border-b border-border">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <Flame className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-foreground leading-tight">Firing Overview</h1>
-                <p className="text-xs text-muted-foreground">Year-to-date production &amp; quality monitoring</p>
+                <h1 className="text-lg font-bold text-foreground leading-tight">
+                  Kiln Production · Glost & Decorated
+                </h1>
+                <p className="text-xs text-muted-foreground">
+                  Glost (142) + Decorations (In-Glaze จาก Google Sheet)
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-muted rounded-lg border border-border">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex rounded-md border border-border overflow-hidden">
+                {(["Daily", "Weekly", "Monthly"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => handlePeriodChange(mode)}
+                    className={cn(
+                      "px-2.5 py-1 text-[11px] font-medium transition-colors",
+                      period === mode
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-accent"
+                    )}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-1.5 px-2 py-1 bg-muted rounded-lg border border-border flex-wrap">
                 <Calendar className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-                  {startDate} → {endDate}
+
+                {period === "Daily" && (
+                  <input
+                    type="date"
+                    value={endDate}
+                    max={todayIso}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (!v) return;
+                      setStartDate(v);
+                      setEndDate(v);
+                    }}
+                    className={dateInputClass}
+                    title={formatDMY(endDate)}
+                  />
+                )}
+
+                {period === "Weekly" && (
+                  <>
+                    <input
+                      type="date"
+                      value={startDate}
+                      max={endDate}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (!v) return;
+                        setStartDate(v);
+                        if (v > endDate) setEndDate(v);
+                      }}
+                      className={dateInputClass}
+                      title={formatDMY(startDate)}
+                    />
+                    <span className="text-[10px] text-muted-foreground">→</span>
+                    <input
+                      type="date"
+                      value={endDate}
+                      min={startDate}
+                      max={todayIso}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (!v) return;
+                        setEndDate(v);
+                        if (v < startDate) setStartDate(v);
+                      }}
+                      className={dateInputClass}
+                      title={formatDMY(endDate)}
+                    />
+                  </>
+                )}
+
+                {period === "Monthly" && (
+                  <input
+                    type="month"
+                    value={monthKeyFromIso(startDate)}
+                    max={monthKeyFromIso(todayIso)}
+                    onChange={(e) => {
+                      const ym = e.target.value;
+                      if (!ym) return;
+                      const range = rangeFromMonthKey(ym, todayIso);
+                      setStartDate(range.start);
+                      setEndDate(range.end);
+                    }}
+                    className={dateInputClass}
+                    title={rangeLabel}
+                  />
+                )}
+
+                <span className="text-[10px] font-medium text-muted-foreground whitespace-nowrap pl-0.5">
+                  {rangeLabel}
+                </span>
+                <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary whitespace-nowrap">
+                  {weekLabel}
                 </span>
               </div>
+
               <button
                 onClick={fetchAll}
                 disabled={loading}
                 className="p-1.5 rounded-lg bg-muted border border-border hover:bg-accent transition-colors disabled:opacity-50"
                 title="Refresh"
               >
-                <RefreshCw className={`h-3.5 w-3.5 text-muted-foreground ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-3.5 w-3.5 text-muted-foreground ${loading ? "animate-spin" : ""}`} />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Content */}
         <div className="p-5 space-y-5">
           {loading ? (
             <div className="flex items-center justify-center h-64">
@@ -326,65 +316,69 @@ export default function KilnP1() {
               <div className="text-center">
                 <p className="text-destructive font-semibold mb-2">เกิดข้อผิดพลาด</p>
                 <p className="text-sm text-muted-foreground mb-3">{error}</p>
-                <button onClick={fetchAll} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm">ลองใหม่</button>
+                <button onClick={fetchAll} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm">
+                  ลองใหม่
+                </button>
               </div>
             </div>
           ) : (
-            <>
-              {/* ══════════════════════════════════════════════
-                  PRODUCTION SECTION
-              ══════════════════════════════════════════════ */}
-              <section>
-                {/* Section Title */}
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-base">🔥</span>
-                  <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">Production</h2>
-                  <div className="flex-1 h-px bg-border" />
-                </div>
+            <section className="space-y-5">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🔥</span>
+                <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">
+                  Glost & Decorated
+                </h2>
+                <div className="flex-1 h-px bg-border" />
+              </div>
 
-                {/* Row 1: 4 Stat Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                  <ProdStatCard label="TOTAL YTD" value={totalYTD} isTotal delay={0} />
-                  <ProdStatCard label="#1 Kiln — Biscuit" kilnName={topKilns.Biscuit.name} value={topKilns.Biscuit.qty} category="Biscuit" delay={40} />
-                  <ProdStatCard label="#1 Kiln — Glaze" kilnName={topKilns.Glaze.name} value={topKilns.Glaze.qty} category="Glaze" delay={80} />
-                  <ProdStatCard label="#1 Kiln — Decal" kilnName={topKilns.Decal.name} value={topKilns.Decal.qty} category="Decal" delay={120} />
-                </div>
+              <GlazeKpiStrip
+                total={totals.total}
+                white={totals.white}
+                black={totals.black}
+                periodLabel={periodTitle(period)}
+                decorations={
+                  inGlaze
+                    ? {
+                        total: inGlaze.total,
+                        avgPerDay: inGlaze.avgPerDay,
+                      }
+                    : null
+                }
+              />
 
-                {/* Row 2: Charts — donuts compact, production chart wider */}
-                <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1.8fr] gap-4">
-                  {/* Process/Kiln Ratio Donut */}
-                  <div>
-                    <CategoryChartKiln data={productionData} />
-                  </div>
-                  {/* Type Ratio Donut */}
-                  <div>
-                    <TypeRatioChart glazeData={typeRatio.glaze} decalData={typeRatio.decal} />
-                  </div>
-                  {/* Production trend chart — tall */}
-                  <div className="h-full min-h-[280px]">
-                    <ProductChartKiln data={productionData} />
-                  </div>
-                </div>
-              </section>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <ClayRatioPanel data={productionData} />
+                <FireRatioPanel data={productionData} />
+                <PieceShapePanel data={productionData} />
+              </div>
 
-              {/* ══════════════════════════════════════════════
-                  QUALITY SECTION
-              ══════════════════════════════════════════════ */}
-              <section>
-                {/* Section Title */}
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-base">🔬</span>
-                  <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">Quality</h2>
-                  <div className="flex-1 h-px bg-border" />
-                </div>
-                <QualitySection rawData={qualityData} weeklyData={weeklyQuality} />
-              </section>
-            </>
+              <KilnFiringTable
+                data={productionData}
+                dayCount={dayCount}
+                planDayCount={period === "Weekly" ? 7 : period === "Daily" ? 1 : dayCount}
+                startDate={startDate}
+                endDate={endDate}
+                periodLabel={periodTitle(period)}
+                decorationsByKiln={
+                  inGlaze?.kilnSummary?.map((k) => ({ kiln: k.kiln, total: k.total })) ?? []
+                }
+                decorationsDaily={
+                  inGlaze?.rows?.map((row) => ({
+                    date: row.date,
+                    kiln: row.kiln,
+                    total: row.total,
+                  })) ?? []
+                }
+              />
+
+              {inGlazeError && (
+                <p className="text-[11px] text-destructive">โหลด Decorations ไม่สำเร็จ: {inGlazeError}</p>
+              )}
+            </section>
           )}
         </div>
       </main>
 
-      {/* Fade-in animation (scoped) */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(6px); }

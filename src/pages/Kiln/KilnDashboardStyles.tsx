@@ -31,17 +31,106 @@ export const CATEGORY_COLORS: Record<string, string> = {
     Other: '#6b7280',    // gray
 };
 
+export const CLAY_COLORS = {
+    white: '#94a3b8', // ดินขาว
+    black: '#1e293b', // ดินดำ
+    unknown: '#9ca3af',
+};
+
+export const FIRE_COLORS = {
+    glaze: '#0d9488',  // เผาเคลือบ
+    repair: '#ea580c', // เผาซ่อม
+};
+
 export const QUALITY_COLORS = {
     complete: '#22c55e',  // green
     scrap: '#ef4444',     // red
     reject: '#f97316',    // orange
 };
 
+export type ClayKind = 'white' | 'black' | 'unknown';
+export type FireKind = 'glaze' | 'repair';
+export type PieceShapeKind =
+    | 'plate'
+    | 'teapot'
+    | 'jar'
+    | 'vessel'
+    | 'cup'
+    | 'acc'
+    | 'mug'
+    | 'bowl'
+    | 'lid'
+    | 'other';
+
+export const PIECE_SHAPE_LABELS: Record<PieceShapeKind, string> = {
+    plate: 'Plate',
+    teapot: 'Teapot',
+    jar: 'Jar',
+    vessel: 'Vessel',
+    cup: 'Cup',
+    acc: 'Acc',
+    mug: 'Mug',
+    bowl: 'Bowl',
+    lid: 'Lid',
+    other: 'Other',
+};
+
+export const CLAY_LABELS: Record<ClayKind, string> = {
+    white: 'ดินขาว',
+    black: 'ดินดำ',
+    unknown: 'ไม่ระบุ',
+};
+
+export const FIRE_LABELS: Record<FireKind, string> = {
+    glaze: 'เผาเคลือบ',
+    repair: 'เผาซ่อม',
+};
+
+/** Clay column: VBB,VCB = ดินขาว · SDB,SHA,SHB = ดินดำ (รองรับค่าแบบ SHA,SHB) */
+export function classifyClay(clay: string | null | undefined): ClayKind {
+    const parts = String(clay ?? '')
+        .split(/[,/;|\s]+/)
+        .map((p) => p.trim().toUpperCase())
+        .filter(Boolean);
+    let white = false;
+    let black = false;
+    for (const p of parts) {
+        if (p === 'VBB' || p === 'VCB') white = true;
+        if (p === 'SDB' || p === 'SHA' || p === 'SHB') black = true;
+    }
+    if (white && !black) return 'white';
+    if (black && !white) return 'black';
+    return 'unknown';
+}
+
+/** Doc prefix: D = เผาเคลือบ · P = เผาซ่อม (หลักการเดียวกับ kiln-dashboard) */
+export function classifyFireFromDoc(doc: string | null | undefined): FireKind | null {
+    const d = String(doc ?? '').trim().toUpperCase();
+    if (!d) return null;
+    if (d.startsWith('D')) return 'glaze';
+    if (d.startsWith('P')) return 'repair';
+    return null;
+}
+
 // ─── Types ───
 export interface KilnProductionRecord {
     kilnName: string;
     category: 'Biscuit' | 'Glaze' | 'Decal';
     docType: 'Normal' | 'Repair';
+    trx_date: string;
+    qtyProc: number;
+    qtyMoved: number;
+    qtyScrap: number;
+    qtyReject: number;
+}
+
+export interface GlazeProductionRecord {
+    kilnName: string;
+    clayKind: ClayKind;
+    clayRaw: string;
+    fireKind: FireKind;
+    pieceShape: PieceShapeKind;
+    description: string;
     trx_date: string;
     qtyProc: number;
     qtyMoved: number;

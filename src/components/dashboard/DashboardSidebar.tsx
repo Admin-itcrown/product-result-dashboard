@@ -71,7 +71,10 @@ const menuItems: MenuItem[] = [
   {
     icon: TrendingUp,
     label: "Kiln",
-    subItems: [{ label: "Kiln", path: "/kilnp1" }]
+    subItems: [
+      { label: "Production", path: "/kilnp1" },
+      { label: "Quality", path: "/kilnquality" }
+    ]
   },
 
   {
