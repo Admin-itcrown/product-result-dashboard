@@ -146,7 +146,7 @@ ORDER BY
     const headers = [
       "Group",
       "Name Group",
-      "Description",
+      "Production Line",
       "Clay",
       "Date",
       "Proc",
@@ -158,6 +158,7 @@ ORDER BY
     const csvRows = rows.map((row) => [
       row.pt_group,
       row.code_cmmt1,
+      row.Line,
       row.Clay,
       row.Date ? formatDateCell(row.Date) : "",
       row.SumQtyProc ?? "",

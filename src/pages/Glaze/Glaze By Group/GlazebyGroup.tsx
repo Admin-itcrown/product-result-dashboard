@@ -94,12 +94,23 @@ const GlazebyGroup = () => {
 
           {/* HEADER */}
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">
-              Glaze By Group Dashboard
-            </h1>
-            <p className="text-slate-500">
-              Production & Scrap Overview
-            </p>
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">
+                Glaze By Group Dashboard
+              </h1>
+              <p className="text-slate-500">
+                Production & Scrap Overview
+              </p>
+            </div>
+            <div className="hidden items-center gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-800 shadow-sm">
+              <Calendar size={18} className="text-indigo-600" />
+              <span>ช่วงวันที่:</span>
+              <span className="text-indigo-950">
+                {startDate ? format(startDate, "dd/MM/yyyy", { locale: th }) : "–"}
+                {" – "}
+                {endDate ? format(endDate, "dd/MM/yyyy", { locale: th }) : "–"}
+              </span>
+            </div>
           </div>
 
           {/* DATE FILTER (ORIGINAL STYLE) */}
@@ -223,13 +234,24 @@ const GlazebyGroup = () => {
           /> */}
 
           <section className="rounded-3xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 p-5 shadow-lg shadow-blue-100/60 sm:p-6">
-            <div className="mb-5 flex items-center gap-3 border-b border-blue-200/80 pb-4">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-blue-200/80 pb-4">
+              <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-violet-600 text-white shadow-md shadow-blue-300/70">
                 <Factory size={24} />
               </div>
               <div>
                 <h2 className="text-xl font-bold text-blue-950">Glaze Plan</h2>
                 <p className="mt-0.5 text-sm text-blue-700/80">เปรียบเทียบยอดผลิตจริงกับแผนที่กำหนด</p>
+              </div>
+              </div>
+              <div className="flex items-center gap-2 rounded-2xl border border-indigo-200 bg-white/85 px-4 py-2.5 text-sm font-semibold text-indigo-800 shadow-sm">
+                <Calendar size={18} className="text-indigo-600" />
+                <span>ช่วงวันที่:</span>
+                <span className="text-indigo-950">
+                  {startDate ? format(startDate, "dd/MM/yyyy", { locale: th }) : "–"}
+                  {" – "}
+                  {endDate ? format(endDate, "dd/MM/yyyy", { locale: th }) : "–"}
+                </span>
               </div>
             </div>
             <ProductionPlanSummary

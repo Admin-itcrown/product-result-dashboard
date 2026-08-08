@@ -56,7 +56,7 @@ export function ProductTableStamp({
            
             GlazeDesc,
             SUM(QtyProc)   AS Sumpro,
-            SUM(QtyMoved)  AS SumA,
+            SUM(QtyMoved)  AS SumMoved,
             SUM(QtyReject) AS SumReject,
             SUM(QtyScrap)  AS Sumscrap,
             CAST(SUM(QtyScrap) AS DECIMAL(18,6)) / NULLIF(SUM(QtyProc), 0) AS Yscrap
@@ -125,7 +125,7 @@ export function ProductTableStamp({
       "Clay",
       "GlazeDesc",
       "Sumpro",
-      "SumA",
+      "SumMoved",
       "SumReject",
       "Sumscrap",
       "YscrapPercent",
@@ -140,7 +140,7 @@ export function ProductTableStamp({
       row.Clay,
       row.GlazeDesc,
       row.Sumpro ?? "",
-      row.SumA ?? "",
+      row.SumMoved ?? "",
       row.SumReject ?? "",
       row.Sumscrap ?? "",
       row.YscrapPercent ?? "",
@@ -253,7 +253,7 @@ export function ProductTableStamp({
                     </td>
 
                     <td className="p-3 text-right text-green-600">
-                      {Number(row.SumA || 0).toLocaleString()}
+                      {Number(row.SumMoved || 0).toLocaleString()}
                     </td>
 
                     <td className="p-3 text-right text-rose-600">
@@ -332,7 +332,7 @@ export function ProductTableStamp({
                           <td className="p-3">{row.Clay}</td>
                           <td className="p-3">{row.GlazeDesc}</td>
                           <td className="p-3 text-right text-blue-600">{Number(row.Sumpro || 0).toLocaleString()}</td>
-                          <td className="p-3 text-right text-green-600">{Number(row.SumA || 0).toLocaleString()}</td>
+                          <td className="p-3 text-right text-green-600">{Number(row.SumMoved || 0).toLocaleString()}</td>
                           <td className="p-3 text-right text-rose-600">{Number(row.Sumscrap || 0).toLocaleString()}</td>
                           <td className="p-3 text-right font-bold">{row.YscrapPercent}%</td>
                         </tr>
