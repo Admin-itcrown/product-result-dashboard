@@ -39,7 +39,7 @@ export function DashboardHeader() {
   }, []);
 
   return (
-    <header className="fixed top-0 left-64 right-0 z-50 h-16 border-b border-border bg-card px-6 flex items-center justify-between shadow-sm">
+    <header className="dashboard-header fixed top-0 left-[var(--dashboard-sidebar-width)] right-0 z-50 h-16 border-b border-border bg-card flex items-center justify-between shadow-sm">
       <div className="flex items-center gap-4">
         <div>
           <h2 className="text-xl font-semibold text-foreground">

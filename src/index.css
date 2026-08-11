@@ -6,6 +6,11 @@
 
 @layer base {
   :root {
+    /* Shared desktop sizing: 1378px, 1600px and 1920px screens each retain
+       comfortable content width without hard-coding a single monitor size. */
+    --dashboard-sidebar-width: 14rem;
+    --dashboard-page-padding: 1rem;
+    --dashboard-header-padding: 1rem;
     --background: 214 32% 97%;
     --foreground: 222 47% 11%;
 
@@ -106,6 +111,35 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', sans-serif;
+    min-width: 0;
+  }
+}
+
+@media (min-width: 1400px) {
+  :root {
+    --dashboard-sidebar-width: 15rem;
+    --dashboard-page-padding: 1.25rem;
+    --dashboard-header-padding: 1.25rem;
+  }
+}
+
+@media (min-width: 1800px) {
+  :root {
+    --dashboard-sidebar-width: 16rem;
+    --dashboard-page-padding: 2rem;
+    --dashboard-header-padding: 2rem;
+  }
+}
+
+@layer utilities {
+  .dashboard-header {
+    padding-inline: var(--dashboard-header-padding);
+  }
+
+  /* All routed dashboard pages share this structure.  The padding scales with
+     available desktop space while tables and charts keep their own overflow. */
+  .dashboard-content-shell > div > div > main {
+    padding-inline: var(--dashboard-page-padding);
   }
 }
 

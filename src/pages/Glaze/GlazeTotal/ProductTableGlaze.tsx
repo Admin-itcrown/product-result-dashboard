@@ -124,7 +124,7 @@ export function ProductTableGlaze({
       "Description2",
       "Clay",
       "GlazeDesc",
-      "Sumpro",
+      "SumProc",
       "SumMoved",
       "SumReject",
       "Sumscrap",

@@ -131,7 +131,7 @@ export function DashboardSidebar() {
     subItems?.some((sub) => location.pathname === sub.path);
 
   return (
-    <aside className="w-64 fixed top-0 left-0 h-screen flex flex-col sidebar-gradient border-r border-sidebar-border">
+    <aside className="dashboard-sidebar w-[var(--dashboard-sidebar-width)] fixed top-0 left-0 h-screen flex flex-col sidebar-gradient border-r border-sidebar-border">
 
       {/* LOGO */}
       <div className="p-6 border-b border-sidebar-border">

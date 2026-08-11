@@ -1,6 +1,6 @@
 import React from "react";
 import { Factory, Boxes, Calendar,GlassWater,Coffee , MoreHorizontal} from "lucide-react";
-import { format } from "date-fns";
+import { format, startOfMonth } from "date-fns";
 import { th } from "date-fns/locale";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
@@ -15,7 +15,7 @@ import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 
 const SortingWWTotal = () => {
-  const [startDate, setStartDate] = React.useState<Date | undefined>(new Date());
+  const [startDate, setStartDate] = React.useState<Date | undefined>(startOfMonth(new Date()));
   const [endDate, setEndDate] = React.useState<Date | undefined>(new Date());
 
   const [showStart, setShowStart] = React.useState(false);

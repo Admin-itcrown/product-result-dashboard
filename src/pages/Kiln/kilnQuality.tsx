@@ -15,7 +15,7 @@ import {
 export default function KilnQuality() {
   const [startDate] = useState(() => {
     const now = new Date();
-    return `${now.getFullYear()}-01-01`;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
   });
   const [endDate] = useState(() => toDateStr(new Date()));
 

@@ -10,8 +10,6 @@ import {
   Outlet,
 } from "react-router-dom";
 
-import { DashboardSidebar } from "@/components/dashboard/DashboardSidebar";
-
 import Index from "./pages/Index";
 import Mold1 from "./pages/Mold/MoldTotal/Moldtotal";
 import Clay1 from "./pages/Clay/clay1";
@@ -39,11 +37,9 @@ const queryClient = new QueryClient();
 function Layout() {
   return (
     <div className="min-h-screen bg-background">
-      {/* Sidebar Fixed */}
-      <DashboardSidebar />
-
-      {/* Content */}
-      <main className="ml-64 pt-16 min-h-screen overflow-x-hidden">
+      {/* Each dashboard page owns the fixed navigation.  This wrapper reserves
+          exactly the same responsive width, so content never sits underneath it. */}
+      <main className="dashboard-content-shell ml-[var(--dashboard-sidebar-width)] pt-16 min-h-screen min-w-0 overflow-x-hidden">
         <Outlet />
       </main>
     </div>

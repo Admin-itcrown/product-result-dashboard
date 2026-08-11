@@ -1,6 +1,6 @@
 import React from "react";
 import { Factory, Calendar } from "lucide-react";
-import { format } from "date-fns";
+import { format, startOfMonth } from "date-fns";
 import { th } from "date-fns/locale";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
@@ -35,7 +35,7 @@ const GROUP_LABEL: Record<string, string> = {
 const bisqueFiring = () => {
   const [startDate, setStartDate] =
     React.useState<Date | undefined>(
-      new Date()
+      startOfMonth(new Date())
     );
 
   const [endDate, setEndDate] =
