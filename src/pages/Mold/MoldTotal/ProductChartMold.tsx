@@ -1,410 +1,414 @@
 import { useEffect, useState } from "react";
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
   Legend,
 } from "recharts";
-import { Maximize2, X } from "lucide-react";
+import {
+  Trophy,
+  Maximize2,
+  X,
+  Package2,
+  TrendingUp,
+} from "lucide-react";
+import { format } from "date-fns";
 
-export function ProductChartMold() {
-  const today = new Date();
+interface Props {
+  startDate?: Date;
+  endDate?: Date;
+  clayFilter?: string;
+}
 
-  const [mode, setMode] = useState("month");
+/* =========================
+   COLORS
+========================= */
+const COLORS = [
+  "#3B82F6",
+  "#10B981",
+  "#F59E0B",
+  "#EF4444",
+  "#8B5CF6",
+  "#06B6D4",
+  "#EC4899",
+  "#84CC16",
+  "#F97316",
+];
 
-  const [selectedMonth, setSelectedMonth] = useState(
-    `${today.getFullYear()}-${String(
-      today.getMonth() + 1
-    ).padStart(2, "0")}`
-  );
 
-  const [selectedYear, setSelectedYear] = useState(
-    today.getFullYear()
-  );
 
+export function ProductChartMold({
+  startDate,
+  endDate,
+  clayFilter,
+}: Props) {
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
+
+  const apiBase =
+    (import.meta as any)?.env?.VITE_API_URL ||
+    `${window.location.protocol}//${window.location.hostname}:3001`;
 
   useEffect(() => {
+    if (!startDate || !endDate) return;
     fetchData();
-  }, [mode, selectedMonth, selectedYear]);
+  }, [startDate, endDate, clayFilter]);
+
+  const formatDate = (d?: Date) =>
+    d ? format(d, "yyyy-MM-dd") : "";
 
   const fetchData = async () => {
-    const dbProfile = "glaze";
-
-    const envApi = (import.meta as any)?.env?.VITE_API_URL;
-
-    const apiBase =
-      envApi ||
-      `${window.location.protocol}//${window.location.hostname}:3001`;
-
-    let whereDate = "";
-    let groupBy = "";
-    let label = "";
-
-    if (mode === "month") {
-      whereDate = `FORMAT([Date],'yyyy-MM')='${selectedMonth}'`;
-      groupBy = "DAY([Date])";
-      label = "CAST(DAY([Date]) AS VARCHAR)";
-    }
-
-    if (mode === "year") {
-      whereDate = `YEAR([Date])=${selectedYear}`;
-      groupBy = "MONTH([Date])";
-      label = "FORMAT([Date],'MMM')";
-    }
+    const clayClause =
+      clayFilter && clayFilter !== "ALL"
+        ? ` AND LEFT(g.[Clay],1) = '${clayFilter.replace("'", "''")}' `
+        : "";
 
     const query = `
       SELECT
-        ${label} AS Period,
-
-        SUM(
-          CASE
-            WHEN Line = '42SOLID'
-            THEN [QtyMoved]
-            ELSE 0
-          END
-        ) AS SOLID,
-
-        SUM(
-          CASE
-            WHEN Line = '42TWOTON'
-            THEN [QtyMoved]
-            ELSE 0
-          END
-        ) AS TWOTON,
-
-        SUM(
-          CASE
-            WHEN Line NOT IN ('42SOLID','42TWOTON')
-            THEN [QtyMoved]
-            ELSE 0
-          END
-        ) AS Others
-
-      FROM glaze_trans
-
-      WHERE ${whereDate}
-       
-
-      GROUP BY ${groupBy}, ${label}
-
-      ORDER BY ${groupBy}
+        COALESCE(LEFT(ig.code_cmmt1, 3), 'Unknown') AS ItemGroup,
+        SUM(g.QtyProc) AS TotalQtyProc,
+        SUM(g.QtyMoved) AS TotalQtyMoved,
+        SUM(g.QtyScrap) AS TotalQtyScrap
+      FROM [Db_glaze].[dbo].[glaze_trans] AS g
+      LEFT JOIN [Db_glaze].[dbo].[pt_mstr] AS p
+        ON g.Item = p.pt_part
+      LEFT JOIN [Db_glaze].[dbo].[itemgroup] AS ig
+        ON p.pt_group = ig.code_value1
+      WHERE g.[Date] BETWEEN '${formatDate(startDate)}' AND '${formatDate(endDate)}'
+        AND g.[Type] = 'BACKFLSH'
+        ${clayClause}
+      GROUP BY
+        COALESCE(LEFT(ig.code_cmmt1, 3), 'Unknown')
+      ORDER BY
+        ItemGroup
     `;
 
-    setLoading(true);
+    console.log("ProductChart fetch params:", { startDate, endDate, clayFilter });
+    console.log("Start Date:", startDate);
+    console.log("End Date:", endDate);
+    console.log("Formatted Start:", formatDate(startDate));
+    console.log("Formatted End:", formatDate(endDate));
+    console.log("Query:", query);
 
     try {
+      setLoading(true);
+
       const res = await fetch(`${apiBase}/query`, {
         method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify({
-          query,
-          db: dbProfile,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, db: "glaze" }),
       });
 
       const payload = await res.json();
+      const records = payload?.recordset || [];
 
-      const raw = payload?.recordset || [];
+      console.log("Chart Data Records:", records);
 
-      setData(
-        raw.map((row: any) => {
-          const solid = Number(row.SOLID || 0);
-          const twotone = Number(row.TWOTON || 0);
-          const others = Number(row.Others || 0);
-
+      const chartData = records
+        .filter((x: any) => Number(x.TotalQtyProc || 0) > 0)
+        .map((x: any) => {
           return {
-            name: row.Period,
-
-            SOLID: solid,
-            TWOTONE: twotone,
-            Others: others,
-
-            Total: solid + twotone + others,
+            name: x.ItemGroup || "Unknown",
+            value: Number(x.TotalQtyProc || 0),
+            moved: Number(x.TotalQtyMoved || 0),
+            scrap: Number(x.TotalQtyScrap || 0),
           };
-        })
-      );
-    } catch (error) {
-      console.error(error);
+        });
+
+      console.log("Filtered Chart Data:", chartData);
+      setData(chartData);
+    } catch (err) {
+      console.error("Chart fetch error:", err);
       setData([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const COLORS = {
-    SOLID: {
-      stroke: "#1e3a8a",
-      fill: "#3b82f6",
-    },
+  const total = data.reduce((s, i) => s + i.value, 0);
+  const totalMoved = data.reduce((s, i) => s + i.moved, 0);
+  const totalScrap = data.reduce((s, i) => s + i.scrap, 0);
 
-    TWOTONE: {
-      stroke: "#c2410c",
-      fill: "#fb923c",
-    },
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (!active || !payload?.length) return null;
 
-    Others: {
-      stroke: "#166534",
-      fill: "#4ade80",
-    },
+    const item = payload[0].payload;
 
-    Total: {
-      stroke: "#7c3aed",
-      fill: "#a78bfa",
-    },
+    return (
+      <div className="bg-white/95 backdrop-blur-md border border-slate-200 rounded-2xl shadow-2xl p-4 min-w-[220px]">
+        <div className="font-bold text-slate-800 text-base mb-3">
+          {item.name}
+        </div>
+
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-slate-500">Proc</span>
+            <span className="font-semibold">
+              {item.value.toLocaleString()}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-emerald-600">Moved</span>
+            <span className="font-semibold">
+              {item.moved.toLocaleString()}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-rose-500">Scrap</span>
+            <span className="font-semibold">
+              {item.scrap.toLocaleString()}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
   };
 
-  const ChartBox = () => (
-    <div className="w-full h-full min-h-[420px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart
-          data={data}
-          margin={{
-            top: 10,
-            right: 20,
-            left: 40,
-            bottom: 10,
-          }}
-        >
+  const renderChart = (expanded = false) => (
+    <ResponsiveContainer width="100%" height="100%">
+      <PieChart>
         <defs>
-          <linearGradient
-            id="solidGrad"
-            x1="0"
-            y1="0"
-            x2="0"
-            y2="1"
-          >
-            <stop
-              offset="5%"
-              stopColor="#3b82f6"
-              stopOpacity={0.6}
+          <filter id="shadow">
+            <feDropShadow
+              dx="0"
+              dy="6"
+              stdDeviation="10"
+              floodOpacity="0.15"
             />
-
-            <stop
-              offset="95%"
-              stopColor="#3b82f6"
-              stopOpacity={0.05}
-            />
-          </linearGradient>
-
-          <linearGradient
-            id="twotoneGrad"
-            x1="0"
-            y1="0"
-            x2="0"
-            y2="1"
-          >
-            <stop
-              offset="5%"
-              stopColor="#fb923c"
-              stopOpacity={0.6}
-            />
-
-            <stop
-              offset="95%"
-              stopColor="#fb923c"
-              stopOpacity={0.05}
-            />
-          </linearGradient>
-
-          <linearGradient
-            id="otherGrad"
-            x1="0"
-            y1="0"
-            x2="0"
-            y2="1"
-          >
-            <stop
-              offset="5%"
-              stopColor="#4ade80"
-              stopOpacity={0.5}
-            />
-
-            <stop
-              offset="95%"
-              stopColor="#4ade80"
-              stopOpacity={0.05}
-            />
-          </linearGradient>
-
-          <linearGradient
-            id="totalGrad"
-            x1="0"
-            y1="0"
-            x2="0"
-            y2="1"
-          >
-            <stop
-              offset="5%"
-              stopColor="#a78bfa"
-              stopOpacity={0.6}
-            />
-
-            <stop
-              offset="95%"
-              stopColor="#a78bfa"
-              stopOpacity={0.05}
-            />
-          </linearGradient>
+          </filter>
         </defs>
 
-        <CartesianGrid
-          strokeDasharray="3 3"
-          stroke="#e5e7eb"
-        />
+        <Pie
+          data={data}
+          dataKey="value"
+          nameKey="name"
+          innerRadius={expanded ? 95 : 78}
+          outerRadius={expanded ? 195 : 150}
+          paddingAngle={3}
+          cornerRadius={10}
+          stroke="#fff"
+          strokeWidth={3}
+          isAnimationActive
+          animationDuration={800}
+          labelLine={false}
+          label={({ name, value }) => {
+            const percent = total
+              ? ((value / total) * 100).toFixed(1)
+              : "0";
 
-        <XAxis dataKey="name" />
+            return `${name} ${percent}%`;
+          }}
+        >
+          {data.map((_, i) => (
+            <Cell
+              key={i}
+              fill={COLORS[i % COLORS.length]}
+              style={{
+                filter: "url(#shadow)",
+              }}
+            />
+          ))}
+        </Pie>
 
-        <YAxis />
+        <text
+          x="50%"
+          y="50%"
+          textAnchor="middle"
+          dominantBaseline="middle"
+        >
+          <tspan
+            x="50%"
+            dy="-14"
+            fontSize={expanded ? 16 : 13}
+            fill="#64748b"
+            fontWeight="600"
+          >
+            TOTAL PROC
+          </tspan>
 
-        <Tooltip
-          itemSorter={(item: any) => -item.value}
-          contentStyle={{
-            backgroundColor: "#fff",
-            border: "1px solid #e5e7eb",
-            borderRadius: "12px",
+          <tspan
+            x="50%"
+            dy={expanded ? 30 : 24}
+            fontSize={expanded ? 30 : 24}
+            fill="#0f172a"
+            fontWeight="800"
+          >
+            {total.toLocaleString()}
+          </tspan>
+        </text>
+
+        <Tooltip content={<CustomTooltip />} />
+
+        <Legend
+          verticalAlign="bottom"
+          iconType="circle"
+          wrapperStyle={{
+            paddingTop: 20,
+            fontSize: 13,
+            fontWeight: 600,
           }}
         />
-
-        <Legend />
-
-        <Area
-          type="monotone"
-          dataKey="SOLID"
-          stroke={COLORS.SOLID.stroke}
-          fill="url(#solidGrad)"
-          strokeWidth={2.5}
-        />
-
-        <Area
-          type="monotone"
-          dataKey="TWOTONE"
-          stroke={COLORS.TWOTONE.stroke}
-          fill="url(#twotoneGrad)"
-          strokeWidth={2.5}
-        />
-
-        <Area
-          type="monotone"
-          dataKey="Others"
-          stroke={COLORS.Others.stroke}
-          fill="url(#otherGrad)"
-          strokeWidth={2.5}
-        />
-
-        <Area
-          type="monotone"
-          dataKey="Total"
-          stroke={COLORS.Total.stroke}
-          fill="url(#totalGrad)"
-          strokeWidth={3}
-        />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
-  );
-
-  const yearOptions = Array.from(
-    { length: 6 },
-    (_, i) => today.getFullYear() - i
+      </PieChart>
+    </ResponsiveContainer>
   );
 
   return (
     <>
-      <div className="bg-white rounded-2xl border shadow-lg p-6 relative">
+      {/* =========================
+          CARD
+      ========================= */}
+      <div className="relative overflow-hidden rounded-[30px] border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-slate-100 shadow-2xl">
 
-        <button
-          onClick={() => setIsFullscreen(true)}
-          className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-100"
-        >
-          <Maximize2 size={18} />
-        </button>
+        {/* BG EFFECT */}
+        <div className="absolute top-0 right-0 w-72 h-72 bg-blue-100 rounded-full blur-3xl opacity-30" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-cyan-100 rounded-full blur-3xl opacity-30" />
 
-        <div className="flex justify-between items-center mb-5 pr-10">
-          <h3 className="text-xl font-semibold text-gray-800">
-            Product Complete Performance Glaze
-          </h3>
+        <div className="relative p-6">
 
-          <div className="flex gap-3">
-            <select
-              value={mode}
-              onChange={(e) => setMode(e.target.value)}
-              className="border rounded-lg px-3 py-1"
-            >
-              <option value="month">รายเดือน</option>
+          {/* HEADER */}
+          <div className="flex items-start justify-between mb-5">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg">
+                  <Trophy className="text-white" size={22} />
+                </div>
 
-              <option value="year">รายปี</option>
-            </select>
+                <div>
+                  <h2 className="text-2xl font-black text-slate-800 tracking-tight">
+                    Glaze By Group Analysis
+                  </h2>
 
-            {mode === "month" && (
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(e) =>
-                  setSelectedMonth(e.target.value)
-                }
-                className="border rounded-lg px-3 py-1"
-              />
-            )}
+                  <p className="text-sm text-slate-500">
+                    Production Overview by Product Group
+                  </p>
+                </div>
+              </div>
+            </div>
 
-            {mode === "year" && (
-              <select
-                value={selectedYear}
-                onChange={(e) =>
-                  setSelectedYear(Number(e.target.value))
-                }
-                className="border rounded-lg px-3 py-1"
+            <div className="flex items-center gap-3">
+              {/* DATE */}
+              <div className="px-4 py-2 rounded-2xl bg-white border border-slate-200 shadow-sm text-sm font-medium text-slate-600">
+                {startDate && endDate
+                  ? `${format(startDate, "dd/MM/yyyy")} - ${format(
+                      endDate,
+                      "dd/MM/yyyy"
+                    )}`
+                  : "No Date"}
+              </div>
+
+              {/* FULLSCREEN */}
+              <button
+                onClick={() => setOpenModal(true)}
+                className="w-11 h-11 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shadow-sm hover:scale-105 transition"
               >
-                {yearOptions.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
+                <Maximize2 size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* SUMMARY */}
+          <div className="grid grid-cols-3 gap-4 mb-5">
+
+            <div className="rounded-3xl bg-white border border-slate-200 p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-slate-500 text-sm font-medium">
+                  Total Proc
+                </span>
+
+                <Package2 className="text-blue-500" size={18} />
+              </div>
+
+              <div className="text-2xl font-black text-slate-800">
+                {total.toLocaleString()}
+              </div>
+            </div>
+
+            <div className="rounded-3xl bg-white border border-emerald-100 p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-emerald-600 text-sm font-medium">
+                  Total Moved
+                </span>
+
+                <TrendingUp className="text-emerald-500" size={18} />
+              </div>
+
+              <div className="text-2xl font-black text-emerald-600">
+                {totalMoved.toLocaleString()}
+              </div>
+            </div>
+
+            <div className="rounded-3xl bg-white border border-rose-100 p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-rose-500 text-sm font-medium">
+                  Total Scrap
+                </span>
+
+                <div className="w-3 h-3 rounded-full bg-rose-500" />
+              </div>
+
+              <div className="text-2xl font-black text-rose-500">
+                {totalScrap.toLocaleString()}
+              </div>
+            </div>
+          </div>
+
+          {/* CHART */}
+          <div className="h-[460px]">
+            {loading ? (
+              <div className="h-full flex items-center justify-center text-slate-500 text-lg font-medium">
+                Loading...
+              </div>
+            ) : (
+              renderChart(false)
             )}
           </div>
         </div>
-
-        <div className="h-[460px] sm:h-[520px]">
-          {loading ? (
-            <div className="flex items-center justify-center h-full text-gray-400">
-              Loading chart...
-            </div>
-          ) : (
-            <ChartBox />
-          )}
-        </div>
       </div>
 
-      {isFullscreen && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
-          <div className="bg-white w-[95vw] h-[90vh] rounded-2xl flex flex-col">
+      {/* =========================
+          FULLSCREEN MODAL
+      ========================= */}
+      {openModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-5">
 
-            <div className="border-b px-6 py-4 flex justify-between items-center">
-              <h3 className="font-semibold text-lg">
-                Product Performance Glaze
-              </h3>
+          <div className="relative bg-white w-[96vw] h-[94vh] rounded-[35px] shadow-2xl overflow-hidden">
 
+            {/* HEADER */}
+            <div className="flex items-center justify-between px-8 py-5 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
+                  <Trophy className="text-white" />
+                </div>
+
+                <div>
+                  <h2 className="text-2xl font-black text-slate-800">
+                    Glaze Group Analysis
+                  </h2>
+
+                  <p className="text-sm text-slate-500">
+                    Expanded Dashboard View
+                  </p>
+                </div>
+              </div>
+
+              {/* CLOSE */}
               <button
-                onClick={() => setIsFullscreen(false)}
-                className="p-2 rounded-lg hover:bg-gray-100"
+                onClick={() => setOpenModal(false)}
+                className="w-12 h-12 rounded-2xl bg-slate-100 hover:bg-slate-200 transition flex items-center justify-center"
               >
                 <X />
               </button>
             </div>
 
-            <div className="flex-1 p-6 min-h-0">
-              <ChartBox />
+            {/* BODY */}
+            <div className="p-6 h-[calc(100%-88px)]">
+              {renderChart(true)}
             </div>
           </div>
         </div>
