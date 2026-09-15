@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
+import { Download } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ProductTableFormmProps {
@@ -190,8 +191,8 @@ export function ProductTableFormm({
     <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
 
       {/* HEADER */}
-      <div className="px-6 py-5 bg-gradient-to-r from-slate-900 to-slate-800 flex items-center justify-between">
-        <div>
+      <div className="px-6 py-5 bg-gradient-to-r from-slate-900 to-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0">
           <h3 className="text-xl font-bold text-white">
             Scrap Analysis Dashboard
           </h3>
@@ -201,12 +202,13 @@ export function ProductTableFormm({
           </p>
         </div>
 
-        <div>
+        <div className="shrink-0">
           <button
             onClick={exportToCsv}
             disabled={isExportDisabled}
-            className={`px-4 py-2 bg-blue-600 text-white rounded-lg ${isExportDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+            className={`inline-flex min-h-10 items-center gap-2 whitespace-nowrap px-4 py-2 bg-blue-600 text-white rounded-lg font-medium shadow-sm transition-colors ${isExportDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
           >
+            <Download size={16} aria-hidden="true" />
             Export to Excel
           </button>
         </div>
