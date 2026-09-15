@@ -86,10 +86,27 @@ export function ProductTableFormm({
         body: JSON.stringify({ query, db: dbProfile }),
       });
 
-      const data = await res.json();
+      const responseText = await res.text();
+      let data: any = {};
+
+      if (responseText.trim()) {
+        try {
+          data = JSON.parse(responseText);
+        } catch {
+          throw new Error(
+            `Server returned invalid JSON (HTTP ${res.status})`
+          );
+        }
+      }
 
       if (!res.ok) {
-        throw new Error(data?.error || "Query failed");
+        throw new Error(
+          data?.error || `Query failed (HTTP ${res.status})`
+        );
+      }
+
+      if (!responseText.trim()) {
+        throw new Error(`Server returned an empty response (HTTP ${res.status})`);
       }
 
       const filtered = (data.recordset || []).sort(
