@@ -7,25 +7,25 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 3001,
+    port: 3002,
     hmr: {
       overlay: false,
     },
     proxy: {
       "/api": {
-        target: "http://localhost:3002",
+        target: "http://localhost:3001",
         changeOrigin: true,
       },
       "/ping-db": {
-        target: "http://localhost:3002",
+        target: "http://localhost:3001",
         changeOrigin: true,
       },
       "/query": {
-        target: "http://localhost:3002",
+        target: "http://localhost:3001",
         changeOrigin: true,
       },
       "/inspect-tables": {
-        target: "http://localhost:3002",
+        target: "http://localhost:3001",
         changeOrigin: true,
       },
     },
