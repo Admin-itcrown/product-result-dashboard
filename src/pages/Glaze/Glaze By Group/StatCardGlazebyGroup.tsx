@@ -56,7 +56,7 @@ export function useFetchGlazebyGroupStats(
           LEFT JOIN [Db_glaze].[dbo].[itemgroup] AS ig
             ON p.pt_group = ig.code_value1
           WHERE g.[Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'
-            AND g.[Type] = 'BACKFLSH'
+            AND g.[Type] = 'BACKFLSH'AND LEFT([Wkctr], 5) IN ('W5170', 'W5180') AND LEFT([Doc], 3) IN ('DGZ')
             ${clayClause}
           GROUP BY
             LEFT(ig.code_cmmt1, 3)

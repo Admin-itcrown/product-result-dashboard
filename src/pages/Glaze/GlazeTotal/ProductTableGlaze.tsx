@@ -66,7 +66,7 @@ export function ProductTableGlaze({
             WHERE [date] >= '${formattedStart}'
               AND [date] <= '${formattedEnd}'
         ) AS glaze_transA
-        WHERE type = 'BACKFLSH'
+        WHERE type = 'BACKFLSH'AND LEFT([Wkctr], 5) IN ('W5170', 'W5180') AND LEFT([Doc], 3) IN ('DGZ')
         GROUP BY Line,Item, Description, Date ,Description2, Clay, GlazeDesc
         ORDER BY Date DESC
       `;

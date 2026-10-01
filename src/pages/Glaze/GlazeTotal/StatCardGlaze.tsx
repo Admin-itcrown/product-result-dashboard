@@ -47,6 +47,8 @@ export function useFetchGlazeStats(
     SUM([QtyMoved]) AS TotalQtyMoved
   FROM [Db_glaze].[dbo].[glaze_trans]
   WHERE [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'  AND [Type] = 'BACKFLSH'
+  AND LEFT([Wkctr], 5) IN ('W5170', 'W5180') AND LEFT([Doc], 3) IN ('DGZ')
+
   GROUP BY [Line]
   ORDER BY [Line]
 `;
@@ -60,6 +62,7 @@ export function useFetchGlazeStats(
           FROM [Db_glaze].[dbo].[glaze_trans]
           WHERE [Line] LIKE '42SOLID'
           AND [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}' AND [Type] = 'BACKFLSH'
+   AND LEFT([Wkctr], 5) IN ('W5170', 'W5180') AND LEFT([Doc], 3) IN ('DGZ')
           ORDER BY [Line]
         `;
 
@@ -72,6 +75,7 @@ export function useFetchGlazeStats(
           FROM [Db_glaze].[dbo].[glaze_trans]
           WHERE [Line] LIKE '42TWOTON'
           AND [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}' AND [Type] = 'BACKFLSH'
+  AND LEFT([Wkctr], 5) IN ('W5170', 'W5180') AND LEFT([Doc], 3) IN ('DGZ')
           ORDER BY [Line]
         `;
 
@@ -84,6 +88,7 @@ export function useFetchGlazeStats(
           WHERE [Line] NOT LIKE '42SOLID'
           AND [Line] NOT LIKE '42TWOTON'
           AND [Date] BETWEEN '${formattedStart}' AND '${formattedEnd}'  AND [Type] = 'BACKFLSH'
+  AND LEFT([Wkctr], 5) IN ('W5170', 'W5180') AND LEFT([Doc], 3) IN ('DGZ')
           ORDER BY [Line]
         `;
         // Fetch all queries in parallel

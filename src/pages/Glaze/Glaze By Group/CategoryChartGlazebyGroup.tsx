@@ -116,7 +116,7 @@ export function CategoryChartGlazebyGroup({
               const whereClauses: string[] = [];
 
               if (startStr && endStr) {
-                whereClauses.push(`[Date] BETWEEN '${startStr}' AND '${endStr}' `);
+                whereClauses.push(`[Date] BETWEEN '${startStr}' AND '${endStr}' AND [Type] = 'BACKFLSH' AND LEFT([Wkctr], 5) IN ('W5170', 'W5180') AND LEFT([Doc], 3) IN ('DGZ') `);
               }
 
               if (clayFilter && clayFilter !== "ALL") {

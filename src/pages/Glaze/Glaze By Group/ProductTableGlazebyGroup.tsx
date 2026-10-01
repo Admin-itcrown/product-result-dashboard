@@ -71,6 +71,7 @@ INNER JOIN glaze_trans AS g
 WHERE g.[Date] >= '${formattedStart}'
   AND g.[Date] <= '${formattedEnd}'
   AND g.[Type] = 'BACKFLSH'
+  AND LEFT([Wkctr], 5) IN ('W5170', 'W5180') AND LEFT([Doc], 3) IN ('DGZ')
   ${clayClause}
 GROUP BY
     p.pt_group,

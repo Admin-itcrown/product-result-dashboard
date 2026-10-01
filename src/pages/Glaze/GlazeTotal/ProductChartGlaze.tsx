@@ -89,7 +89,7 @@ export function ProductChartGlaze() {
 
       FROM glaze_trans
 
-      WHERE ${whereDate}
+      WHERE ${whereDate} AND [Type] = 'BACKFLSH' AND LEFT([Wkctr], 5) IN ('W5170', 'W5180') AND LEFT([Doc], 3) IN ('DGZ')
        
 
       GROUP BY ${groupBy}, ${label}

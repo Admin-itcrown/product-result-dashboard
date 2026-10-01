@@ -79,6 +79,7 @@ export function ProductChartGlazebyGroup({
         ON p.pt_group = ig.code_value1
       WHERE g.[Date] BETWEEN '${formatDate(startDate)}' AND '${formatDate(endDate)}'
         AND g.[Type] = 'BACKFLSH'
+        AND LEFT([Wkctr], 5) IN ('W5170', 'W5180') AND LEFT([Doc], 3) IN ('DGZ')
         ${clayClause}
       GROUP BY
         COALESCE(LEFT(ig.code_cmmt1, 3), 'Unknown')

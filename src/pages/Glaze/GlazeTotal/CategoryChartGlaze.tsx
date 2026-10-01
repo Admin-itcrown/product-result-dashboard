@@ -93,7 +93,7 @@ export function CategoryChartGlaze({
       
               if (startStr && endStr) {
                 query += `
-                  WHERE [Date] BETWEEN '${startStr}' AND '${endStr}' 
+                  WHERE [Date] BETWEEN '${startStr}' AND '${endStr}' AND [Type] = 'BACKFLSH' AND LEFT([Wkctr], 5) IN ('W5170', 'W5180') AND LEFT([Doc], 3) IN ('DGZ')
                 `;
               }
       
