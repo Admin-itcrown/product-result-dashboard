@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
+import { Download } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ProductTableBisqueProps {
@@ -103,6 +104,52 @@ export function ProductTableBisque({
     }
   }
 
+  const exportToCsv = () => {
+    if (rows.length === 0) return;
+
+    const escape = (value: unknown) => {
+      if (value === null || value === undefined) return "";
+      return String(value).replace(/"/g, '""');
+    };
+
+    const headers = [
+      "Line",
+      "Item",
+      "Clay",
+      "Description",
+      "Proc",
+      "Moved",
+      "Scrap Qty",
+      "Scrap %",
+    ];
+
+    const lines = rows.map((row) => [
+      `"${escape(row.Line ? row.Line.slice(2, 5) : "")}"`,
+      `"${escape(row.Item)}"`,
+      `"${escape(row.Clay)}"`,
+      `"${escape(row.Description)}"`,
+      Number(row.TotalQtyProc || 0),
+      Number(row.TotalQtyMoved || 0),
+      Number(row.TotalQtyScrap || 0),
+      `${Number(row.ScrapPercent || 0).toFixed(2)}%`,
+    ].join(","));
+
+    const csv = [headers.join(","), ...lines].join("\n");
+    const blob = new Blob(["\uFEFF", csv], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `bisque-firing-scrap-analysis_${format(new Date(), "yyyyMMdd_HHmmss")}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const isExportDisabled = loading || rows.length === 0;
+
   const totalPages = Math.ceil(rows.length / pageSize);
 
   const pagedRows = rows.slice(
@@ -114,14 +161,26 @@ export function ProductTableBisque({
     <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
 
       {/* HEADER */}
-      <div className="px-6 py-5 bg-gradient-to-r from-slate-900 to-slate-800">
-        <h3 className="text-xl font-bold text-white">
-          Scrap Analysis Dashboard
-        </h3>
+      <div className="px-6 py-5 bg-gradient-to-r from-slate-900 to-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h3 className="text-xl font-bold text-white">
+            Scrap Analysis Dashboard
+          </h3>
 
-        <p className="text-sm text-slate-300 mt-1">
-          Line / Item / Clay / Description / Production
-        </p>
+          <p className="text-sm text-slate-300 mt-1">
+            Line / Item / Clay / Description / Production
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={exportToCsv}
+          disabled={isExportDisabled}
+          className={`inline-flex min-h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-blue-600 px-4 py-2 font-medium text-white shadow-sm transition-colors ${isExportDisabled ? "cursor-not-allowed opacity-50" : "hover:bg-blue-700"}`}
+        >
+          <Download size={16} aria-hidden="true" />
+          Export to Excel
+        </button>
       </div>
 
       <div className="p-5">
